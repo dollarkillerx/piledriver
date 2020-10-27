@@ -1,0 +1,16 @@
+syntax = "proto3";
+package proto;
+option go_package = ".;proto";
+
+service Plumber {
+  rpc Plumber(PlumberRequest) returns(PlumberResponse) ;
+}
+
+message PlumberRequest {
+  bytes data = 1;
+  string addr = 2;
+}
+
+message PlumberResponse {
+  bytes data = 1;
+}
