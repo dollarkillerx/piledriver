@@ -3,7 +3,9 @@ package proto;
 option go_package = ".;proto";
 
 service Plumber {
-  rpc Plumber(PlumberRequest) returns(PlumberResponse) ;
+  rpc PlumberLinks(PlumberRequest) returns(PlumberResponse) ;
+  rpc PlumberExchange(PlumberRequest) returns(PlumberResponse) ;
+  rpc PlumberDisconnect(PlumberRequest) returns(PlumberResponse) ;
 }
 
 message PlumberRequest {
