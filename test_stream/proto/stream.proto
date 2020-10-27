@@ -1,0 +1,16 @@
+syntax = "proto3";
+package proto;
+option go_package = ".;proto";
+
+service StreamServer {
+  rpc Stream(stream Request) returns (stream Response);
+}
+
+message Request {
+  string msg = 1;
+}
+
+message Response {
+  string msg = 1;
+}
+
