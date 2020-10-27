@@ -141,12 +141,21 @@ var file_plumber_proto_rawDesc = []byte{
 	0x61, 0x64, 0x64, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x61, 0x64, 0x64, 0x72,
 	0x22, 0x25, 0x0a, 0x0f, 0x50, 0x6c, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f,
 	0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x32, 0x43, 0x0a, 0x07, 0x50, 0x6c, 0x75, 0x6d, 0x62,
-	0x65, 0x72, 0x12, 0x38, 0x0a, 0x07, 0x50, 0x6c, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x12, 0x15, 0x2e,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x6c, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x1a, 0x16, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x6c, 0x75,
-	0x6d, 0x62, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x09, 0x5a, 0x07,
-	0x2e, 0x3b, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x32, 0xce, 0x01, 0x0a, 0x07, 0x50, 0x6c, 0x75, 0x6d,
+	0x62, 0x65, 0x72, 0x12, 0x3d, 0x0a, 0x0c, 0x50, 0x6c, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x4c, 0x69,
+	0x6e, 0x6b, 0x73, 0x12, 0x15, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x6c, 0x75, 0x6d,
+	0x62, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x16, 0x2e, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x2e, 0x50, 0x6c, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x12, 0x40, 0x0a, 0x0f, 0x50, 0x6c, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x45, 0x78, 0x63,
+	0x68, 0x61, 0x6e, 0x67, 0x65, 0x12, 0x15, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x6c,
+	0x75, 0x6d, 0x62, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x16, 0x2e, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x6c, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x42, 0x0a, 0x11, 0x50, 0x6c, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x44,
+	0x69, 0x73, 0x63, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x12, 0x15, 0x2e, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x2e, 0x50, 0x6c, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x1a, 0x16, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x6c, 0x75, 0x6d, 0x62, 0x65, 0x72,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x09, 0x5a, 0x07, 0x2e, 0x3b, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -167,10 +176,14 @@ var file_plumber_proto_goTypes = []interface{}{
 	(*PlumberResponse)(nil), // 1: proto.PlumberResponse
 }
 var file_plumber_proto_depIdxs = []int32{
-	0, // 0: proto.Plumber.Plumber:input_type -> proto.PlumberRequest
-	1, // 1: proto.Plumber.Plumber:output_type -> proto.PlumberResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	0, // 0: proto.Plumber.PlumberLinks:input_type -> proto.PlumberRequest
+	0, // 1: proto.Plumber.PlumberExchange:input_type -> proto.PlumberRequest
+	0, // 2: proto.Plumber.PlumberDisconnect:input_type -> proto.PlumberRequest
+	1, // 3: proto.Plumber.PlumberLinks:output_type -> proto.PlumberResponse
+	1, // 4: proto.Plumber.PlumberExchange:output_type -> proto.PlumberResponse
+	1, // 5: proto.Plumber.PlumberDisconnect:output_type -> proto.PlumberResponse
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -239,7 +252,9 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type PlumberClient interface {
-	Plumber(ctx context.Context, in *PlumberRequest, opts ...grpc.CallOption) (*PlumberResponse, error)
+	PlumberLinks(ctx context.Context, in *PlumberRequest, opts ...grpc.CallOption) (*PlumberResponse, error)
+	PlumberExchange(ctx context.Context, in *PlumberRequest, opts ...grpc.CallOption) (*PlumberResponse, error)
+	PlumberDisconnect(ctx context.Context, in *PlumberRequest, opts ...grpc.CallOption) (*PlumberResponse, error)
 }
 
 type plumberClient struct {
@@ -250,9 +265,27 @@ func NewPlumberClient(cc grpc.ClientConnInterface) PlumberClient {
 	return &plumberClient{cc}
 }
 
-func (c *plumberClient) Plumber(ctx context.Context, in *PlumberRequest, opts ...grpc.CallOption) (*PlumberResponse, error) {
+func (c *plumberClient) PlumberLinks(ctx context.Context, in *PlumberRequest, opts ...grpc.CallOption) (*PlumberResponse, error) {
 	out := new(PlumberResponse)
-	err := c.cc.Invoke(ctx, "/proto.Plumber/Plumber", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/proto.Plumber/PlumberLinks", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *plumberClient) PlumberExchange(ctx context.Context, in *PlumberRequest, opts ...grpc.CallOption) (*PlumberResponse, error) {
+	out := new(PlumberResponse)
+	err := c.cc.Invoke(ctx, "/proto.Plumber/PlumberExchange", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *plumberClient) PlumberDisconnect(ctx context.Context, in *PlumberRequest, opts ...grpc.CallOption) (*PlumberResponse, error) {
+	out := new(PlumberResponse)
+	err := c.cc.Invoke(ctx, "/proto.Plumber/PlumberDisconnect", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -261,35 +294,79 @@ func (c *plumberClient) Plumber(ctx context.Context, in *PlumberRequest, opts ..
 
 // PlumberServer is the server API for Plumber service.
 type PlumberServer interface {
-	Plumber(context.Context, *PlumberRequest) (*PlumberResponse, error)
+	PlumberLinks(context.Context, *PlumberRequest) (*PlumberResponse, error)
+	PlumberExchange(context.Context, *PlumberRequest) (*PlumberResponse, error)
+	PlumberDisconnect(context.Context, *PlumberRequest) (*PlumberResponse, error)
 }
 
 // UnimplementedPlumberServer can be embedded to have forward compatible implementations.
 type UnimplementedPlumberServer struct {
 }
 
-func (*UnimplementedPlumberServer) Plumber(context.Context, *PlumberRequest) (*PlumberResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Plumber not implemented")
+func (*UnimplementedPlumberServer) PlumberLinks(context.Context, *PlumberRequest) (*PlumberResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PlumberLinks not implemented")
+}
+func (*UnimplementedPlumberServer) PlumberExchange(context.Context, *PlumberRequest) (*PlumberResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PlumberExchange not implemented")
+}
+func (*UnimplementedPlumberServer) PlumberDisconnect(context.Context, *PlumberRequest) (*PlumberResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PlumberDisconnect not implemented")
 }
 
 func RegisterPlumberServer(s *grpc.Server, srv PlumberServer) {
 	s.RegisterService(&_Plumber_serviceDesc, srv)
 }
 
-func _Plumber_Plumber_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Plumber_PlumberLinks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PlumberRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PlumberServer).Plumber(ctx, in)
+		return srv.(PlumberServer).PlumberLinks(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.Plumber/Plumber",
+		FullMethod: "/proto.Plumber/PlumberLinks",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PlumberServer).Plumber(ctx, req.(*PlumberRequest))
+		return srv.(PlumberServer).PlumberLinks(ctx, req.(*PlumberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Plumber_PlumberExchange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PlumberRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlumberServer).PlumberExchange(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Plumber/PlumberExchange",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlumberServer).PlumberExchange(ctx, req.(*PlumberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Plumber_PlumberDisconnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PlumberRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlumberServer).PlumberDisconnect(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Plumber/PlumberDisconnect",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlumberServer).PlumberDisconnect(ctx, req.(*PlumberRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -299,8 +376,16 @@ var _Plumber_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*PlumberServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Plumber",
-			Handler:    _Plumber_Plumber_Handler,
+			MethodName: "PlumberLinks",
+			Handler:    _Plumber_PlumberLinks_Handler,
+		},
+		{
+			MethodName: "PlumberExchange",
+			Handler:    _Plumber_PlumberExchange_Handler,
+		},
+		{
+			MethodName: "PlumberDisconnect",
+			Handler:    _Plumber_PlumberDisconnect_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
