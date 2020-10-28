@@ -12,7 +12,7 @@ import (
 
 func main() {
 	// 创建一个tcp服务
-	addr := "0.0.0.0:9001"
+	addr := "0.0.0.0:443"
 	listener, e := net.Listen("tcp", addr)
 	if e != nil {
 		panic(e.Error())
