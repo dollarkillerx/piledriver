@@ -22,7 +22,7 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
-	
+
 	for {
 		client, err := l.Accept()
 		if err != nil {
@@ -74,7 +74,6 @@ func handleClientRequest2(client net.Conn) {
 			return
 		}
 
-
 		response, err := plumber.Plumber(context.TODO(), &proto.PlumberRequest{Data: data, Addr: addr})
 		if err != nil {
 			log.Println(err)
@@ -85,7 +84,7 @@ func handleClientRequest2(client net.Conn) {
 	}
 }
 
-func ral(client io.Reader) (data []byte,err error) {
+func ral(client io.Reader) (data []byte, err error) {
 	buffer := bytes.NewBuffer(data)
 	writer := bufio.NewWriter(buffer)
 	for {
@@ -115,7 +114,6 @@ func copy2(server io.Writer, client io.Reader) {
 			}
 			break
 		}
-
 
 		if _, err := server.Write(b[:read]); err != nil {
 			log.Println(err)

@@ -21,15 +21,16 @@ func main() {
 	defer listen.Close()
 
 	srv := grpc.NewServer()
-	proto.RegisterSimpleServerServer(srv,&server{})
+	proto.RegisterSimpleServerServer(srv, &server{})
 	reflection.Register(srv)
 }
 
-type server struct {
-}
+type server struct{}
 
 func (s *server) Simple(ctx context.Context, req *proto.Request) (resp *proto.Response, err error) {
 	log.Println(req.Msg)
 
-	return &proto.Response{Msg: req.Msg + "hello"}, nil
+	return &proto.Response{
+		Msg: req.Msg + "Spc",
+	}, nil
 }
