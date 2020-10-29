@@ -90,7 +90,7 @@ func (s *server) Plumber(ser rpc.Plumber_PlumberServer) error {
 	}
 	defer conn.Close()
 	if err := conn.SetLinger(0); err != nil {
-		log.Println(err)
+		//log.Println(err)
 		return err
 	}
 
@@ -107,12 +107,12 @@ func copy2(server rpc.Plumber_PlumberServer, client io.Reader) {
 			if err == io.EOF {
 				break
 			}
-			log.Println(err)
+			//log.Println(err)
 			break
 		}
 
 		if err := server.Send(&rpc.PlumberResponse{Data: b[:read]}); err != nil {
-			log.Println(err)
+			//log.Println(err)
 			break
 		}
 	}
@@ -122,14 +122,14 @@ func copy1(server io.Writer, ser rpc.Plumber_PlumberServer) {
 	for {
 		recv, err := ser.Recv()
 		if err != nil {
-			log.Println(err)
+			//log.Println(err)
 			break
 		}
 		if recv.Over {
 			break
 		}
 		if _, err := server.Write(recv.Data); err != nil {
-			log.Println(err)
+			//log.Println(err)
 			break
 		}
 	}
