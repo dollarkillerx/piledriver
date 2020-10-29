@@ -10,6 +10,35 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
+const pem = `
+-----BEGIN CERTIFICATE-----
+MIICYzCCAeqgAwIBAgIUTShO8REvwRrDoBdRq9ZzzcEMP6swCgYIKoZIzj0EAwIw
+aTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoMGElu
+dGVybmV0IFdpZGdpdHMgUHR5IEx0ZDEQMA4GA1UECwwHcGx1bWJlcjEQMA4GA1UE
+AwwHcGx1bWJlcjAeFw0yMDEwMjcxMTU1MDZaFw0zMDEwMjUxMTU1MDZaMGkxCzAJ
+BgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5l
+dCBXaWRnaXRzIFB0eSBMdGQxEDAOBgNVBAsMB3BsdW1iZXIxEDAOBgNVBAMMB3Bs
+dW1iZXIwdjAQBgcqhkjOPQIBBgUrgQQAIgNiAATvf5qn0hKp56iFULTyXfTNRVMf
+8mBgQR8GiJlhMNs8SE/128T2lD0UFDMrAVxKxo/rHsP5ORiP/uc9NnK721dVlmcH
+40XGXtW2BbThJeCFdNO1ife81fuqzxWx4oSIGWajUzBRMB0GA1UdDgQWBBQoI4sE
+Nx8JzONu9VixAeN1Kr5GdzAfBgNVHSMEGDAWgBQoI4sENx8JzONu9VixAeN1Kr5G
+dzAPBgNVHRMBAf8EBTADAQH/MAoGCCqGSM49BAMCA2cAMGQCMEa8IP5y+EzZOzrm
+O9yFZkNqkBkFl00M0GAR5wvO1W6pyC7tJfvgxd8C3mClltakOgIwXzDvpKz9eG4h
+59r69pUhx2Jc5ffDO/SbNEx51o3zOvdR77OxaJvNS/cyC2TENO8C
+-----END CERTIFICATE-----
+`
+const key = `
+-----BEGIN EC PARAMETERS-----
+BgUrgQQAIg==
+-----END EC PARAMETERS-----
+-----BEGIN EC PRIVATE KEY-----
+MIGkAgEBBDDrNKgmBBwFBR/NgUxoVDzYeyl7wb1dqmehUSvzBPYLd3SZp/euqVli
+hIOSvDX4DrqgBwYFK4EEACKhZANiAATvf5qn0hKp56iFULTyXfTNRVMf8mBgQR8G
+iJlhMNs8SE/128T2lD0UFDMrAVxKxo/rHsP5ORiP/uc9NnK721dVlmcH40XGXtW2
+BbThJeCFdNO1ife81fuqzxWx4oSIGWY=
+-----END EC PRIVATE KEY-----
+`
+
 func main() {
 	log.SetFlags(log.Llongfile | log.LstdFlags)
 	addr := "0.0.0.0:8086"
@@ -23,6 +52,7 @@ func main() {
 	rpc.RegisterPlumberServer(srv, &server{})
 	reflection.Register(srv)
 
+	log.Println(addr)
 	if err := srv.Serve(listen); err != nil {
 		log.Fatalln(err)
 	}

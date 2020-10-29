@@ -21,7 +21,7 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
-
+	log.Println("RUn 8081")
 	addrS := "0.0.0.0:8086"
 	s := New(addrS)
 	for {
