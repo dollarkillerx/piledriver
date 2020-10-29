@@ -2,17 +2,40 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
 	"io"
 	"log"
 	"net"
+	"os"
+	"strconv"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"plumber/plumber2/rpc"
-	"strconv"
 )
 
+const pem = `
+-----BEGIN CERTIFICATE-----
+MIICYzCCAeqgAwIBAgIUTShO8REvwRrDoBdRq9ZzzcEMP6swCgYIKoZIzj0EAwIw
+aTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoMGElu
+dGVybmV0IFdpZGdpdHMgUHR5IEx0ZDEQMA4GA1UECwwHcGx1bWJlcjEQMA4GA1UE
+AwwHcGx1bWJlcjAeFw0yMDEwMjcxMTU1MDZaFw0zMDEwMjUxMTU1MDZaMGkxCzAJ
+BgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5l
+dCBXaWRnaXRzIFB0eSBMdGQxEDAOBgNVBAsMB3BsdW1iZXIxEDAOBgNVBAMMB3Bs
+dW1iZXIwdjAQBgcqhkjOPQIBBgUrgQQAIgNiAATvf5qn0hKp56iFULTyXfTNRVMf
+8mBgQR8GiJlhMNs8SE/128T2lD0UFDMrAVxKxo/rHsP5ORiP/uc9NnK721dVlmcH
+40XGXtW2BbThJeCFdNO1ife81fuqzxWx4oSIGWajUzBRMB0GA1UdDgQWBBQoI4sE
+Nx8JzONu9VixAeN1Kr5GdzAfBgNVHSMEGDAWgBQoI4sENx8JzONu9VixAeN1Kr5G
+dzAPBgNVHRMBAf8EBTADAQH/MAoGCCqGSM49BAMCA2cAMGQCMEa8IP5y+EzZOzrm
+O9yFZkNqkBkFl00M0GAR5wvO1W6pyC7tJfvgxd8C3mClltakOgIwXzDvpKz9eG4h
+59r69pUhx2Jc5ffDO/SbNEx51o3zOvdR77OxaJvNS/cyC2TENO8C
+-----END CERTIFICATE-----
+`
+
 func main() {
-	log.SetFlags(log.LstdFlags | log.Llongfile)
+	//log.SetFlags(log.LstdFlags | log.Llongfile)
 	addr, err := net.ResolveTCPAddr("tcp", ":8081")
 	if err != nil {
 		log.Fatalln(err)
@@ -22,7 +45,7 @@ func main() {
 		log.Panic(err)
 	}
 	log.Println("RUn 8081")
-	addrS := "0.0.0.0:8086"
+	addrS := os.Args[1]
 	s := New(addrS)
 	for {
 		client, err := l.Accept()
@@ -38,10 +61,16 @@ type server struct {
 }
 
 func New(addr string) *server {
-	conn, err := grpc.Dial(addr, grpc.WithInsecure())
+	creds, err := NewClientTLSFromFile(pem, "plumber")
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(&loginCreds{
+		Username: "user",
+		Password: "H40XGXtW2",
+	}))
+
 	client := rpc.NewPlumberClient(conn)
 	return &server{client: client}
 }
@@ -123,4 +152,27 @@ func copy2(client io.Writer, server rpc.Plumber_PlumberClient) {
 			log.Println(err)
 		}
 	}
+}
+
+type loginCreds struct {
+	Username, Password string
+}
+
+func (c *loginCreds) GetRequestMetadata(context.Context, ...string) (map[string]string, error) {
+	return map[string]string{
+		"username": c.Username,
+		"password": c.Password,
+	}, nil
+}
+
+func (c *loginCreds) RequireTransportSecurity() bool {
+	return true
+}
+
+func NewClientTLSFromFile(certFile, serverNameOverride string) (credentials.TransportCredentials, error) {
+	cp := x509.NewCertPool()
+	if !cp.AppendCertsFromPEM([]byte(certFile)) {
+		return nil, fmt.Errorf("credentials: failed to append certificates")
+	}
+	return credentials.NewTLS(&tls.Config{ServerName: serverNameOverride, RootCAs: cp}), nil
 }

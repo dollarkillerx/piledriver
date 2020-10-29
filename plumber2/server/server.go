@@ -1,12 +1,17 @@
 package main
 
 import (
+	"context"
+	"crypto/tls"
+	"fmt"
 	"io"
 	"log"
 	"net"
 	"plumber/plumber2/rpc"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -40,15 +45,24 @@ BbThJeCFdNO1ife81fuqzxWx4oSIGWY=
 `
 
 func main() {
-	log.SetFlags(log.Llongfile | log.LstdFlags)
-	addr := "0.0.0.0:8086"
+	//log.SetFlags(log.Llongfile | log.LstdFlags)
+	addr := "0.0.0.0:443"
 	listen, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatalln(err)
 	}
 	defer listen.Close()
 
-	srv := grpc.NewServer()
+	creds, err := NewServerTLSFromFile(pem, key)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	srv := grpc.NewServer(
+		grpc.Creds(creds),
+		grpc.StreamInterceptor(streamInterceptor("user", "H40XGXtW2")),
+		grpc.UnaryInterceptor(unaryInterceptor("user", "H40XGXtW2")),
+	)
 	rpc.RegisterPlumberServer(srv, &server{})
 	reflection.Register(srv)
 
@@ -119,4 +133,50 @@ func copy1(server io.Writer, ser rpc.Plumber_PlumberServer) {
 			break
 		}
 	}
+}
+
+func streamInterceptor(username string, password string) func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		if err := authorize(username, password)(stream.Context()); err != nil {
+			return err
+		}
+
+		return handler(srv, stream)
+	}
+}
+
+func unaryInterceptor(username string, password string) func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		if err := authorize(username, password)(ctx); err != nil {
+			return nil, err
+		}
+		return handler(ctx, req)
+	}
+}
+
+func authorize(username string, password string) func(ctx context.Context) error {
+	return func(ctx context.Context) error {
+		if md, ok := metadata.FromIncomingContext(ctx); ok {
+			if len(md["username"]) > 0 && md["username"][0] == username &&
+				len(md["password"]) > 0 && md["password"][0] == password {
+				return nil
+			}
+
+			return fmt.Errorf("AccessDeniedErr")
+		}
+
+		return fmt.Errorf("EmptyMetadataErr")
+	}
+}
+
+func NewServerTLSFromFile(certFile, keyFile string) (credentials.TransportCredentials, error) {
+	cert, err := LoadX509KeyPair([]byte(certFile), []byte(keyFile))
+	if err != nil {
+		return nil, err
+	}
+	return credentials.NewTLS(&tls.Config{Certificates: []tls.Certificate{cert}}), nil
+}
+
+func LoadX509KeyPair(cert, key []byte) (tls.Certificate, error) {
+	return tls.X509KeyPair(cert, key)
 }
