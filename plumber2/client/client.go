@@ -80,6 +80,13 @@ func New(addr string) *server {
 }
 
 func (s *server) handleClientRequest(client net.Conn) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in f", r)
+		}
+		return
+	}()
+
 	if client == nil {
 		return
 	}
