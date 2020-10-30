@@ -50,7 +50,8 @@ func main() {
 	for {
 		client, err := l.Accept()
 		if err != nil {
-			log.Panic(err)
+			log.Println(err)
+			continue
 		}
 		go s.handleClientRequest(client)
 	}
@@ -70,6 +71,9 @@ func New(addr string) *server {
 		Username: "user",
 		Password: "H40XGXtW2",
 	}))
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	client := rpc.NewPlumberClient(conn)
 	return &server{client: client}
@@ -83,7 +87,7 @@ func (s *server) handleClientRequest(client net.Conn) {
 	var b [1024]byte
 	n, err := client.Read(b[:])
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
 		return
 	}
 	if b[0] == 0x05 { //只处理Socket5协议
@@ -107,16 +111,17 @@ func (s *server) handleClientRequest(client net.Conn) {
 		//进行转发
 		stream, err := s.client.Plumber(context.TODO())
 		if err != nil {
-			log.Println(err)
+			//log.Println(err)
 			return
 		}
 
 		if err := stream.Send(&rpc.PlumberRequest{
 			Addr: addr,
 		}); err != nil {
-			log.Println(err)
+			//log.Println(err)
 			return
 		}
+
 		go copy1(stream, client)
 		copy2(client, stream)
 	}
@@ -131,11 +136,12 @@ func copy1(server rpc.Plumber_PlumberClient, client io.Reader) {
 				server.Send(&rpc.PlumberRequest{Over: true})
 				break
 			}
+			//log.Println(err)
 			break
 		}
 
 		if err := server.Send(&rpc.PlumberRequest{Data: b[:read]}); err != nil {
-			log.Println(err)
+			//log.Println(err)
 			break
 		}
 	}
@@ -145,11 +151,15 @@ func copy2(client io.Writer, server rpc.Plumber_PlumberClient) {
 	for {
 		recv, err := server.Recv()
 		if err != nil {
-			log.Println(err)
+			if err == io.EOF {
+				break
+			}
+			//log.Println(err)
 			break
 		}
 		if _, err := client.Write(recv.Data); err != nil {
-			log.Println(err)
+			//log.Println(err)
+			break
 		}
 	}
 }
