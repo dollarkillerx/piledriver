@@ -13,7 +13,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"plumber/plumber2/rpc"
+	"plumber/rpc"
 )
 
 const pem = `
