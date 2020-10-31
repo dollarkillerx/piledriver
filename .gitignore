@@ -18,4 +18,7 @@
 ip2region.db
 
 plumber
+plumber.exe
+plumber_darwin
+plumber_linux
 pct.md

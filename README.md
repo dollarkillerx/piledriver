@@ -1,10 +1,5 @@
-# plumber
-walk in the darkness and worship the light.
+# PileDriver   Reliable, encrypted transmission tunnels empower reliable telecommuting. 
+可靠的加密传输隧道  为远程办公可靠通信赋能
 
-### 测试
-Cloudflase
-1. simple
-2. stream 
-
-推荐使用Stream
-`CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -tags=tcp `
+### 编译客户端
+`make build_agent`
