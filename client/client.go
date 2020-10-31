@@ -35,25 +35,35 @@ O9yFZkNqkBkFl00M0GAR5wvO1W6pyC7tJfvgxd8C3mClltakOgIwXzDvpKz9eG4h
 -----END CERTIFICATE-----
 `
 
-
 // ./client addr socketAddr user passwd
+// ./client 212.95.146.79:443 0.0.0.0:8081 user H40XGXtW2
 func main() {
 	//log.SetFlags(log.LstdFlags | log.Llongfile)
+	if len(os.Args) < 5 {
+		log.Fatalln("what fuck???")
+	}
 	addr, err := net.ResolveTCPAddr("tcp", os.Args[2])
 	if err != nil {
 		log.Fatalln(err)
 	}
 	l, err := net.ListenTCP("tcp", addr)
 	if err != nil {
-		log.Panic(err)
+		log.Fatalln(err)
 	}
 	log.Println("Socket Addr: ", os.Args[2])
 	s := New(os.Args[1])
+	if len(os.Args) > 5 {
+		s.pac = true
+		log.Println("Pac Model")
+	}
+
 	for {
 		client, err := l.Accept()
 		if err != nil {
-			log.Panic(err)
+			log.Println(err)
+			continue
 		}
+
 		go s.handleClientRequest(client)
 	}
 }
@@ -107,12 +117,14 @@ func (s *server) handleClientRequest(client net.Conn) {
 			host = net.IPv4(b[4], b[5], b[6], b[7]).String()
 			pac, err = s.isPac(host, "")
 			if err != nil {
+				//log.Println(err)
 				return
 			}
 		case 0x03: //域名
 			host = string(b[5 : n-2]) //b[4]表示域名的长度
 			pac, err = s.isPac("", host)
 			if err != nil {
+				//log.Println(err)
 				return
 			}
 		case 0x04: //IP V6
@@ -123,8 +135,12 @@ func (s *server) handleClientRequest(client net.Conn) {
 
 		addr := net.JoinHostPort(host, port)
 
-		client.Write([]byte{0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}) //响应客户端连接成功
-		if !pac {
+		if _, err := client.Write([]byte{0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}); err != nil { //响应客户端连接成功
+			//log.Println(err)
+			return
+		}
+
+		if pac {
 			simple(client, addr)
 			return
 		}
@@ -136,12 +152,14 @@ func (s *server) handleClientRequest(client net.Conn) {
 			return
 		}
 
+
 		if err := stream.Send(&rpc.PlumberRequest{
 			Addr: addr,
 		}); err != nil {
 			//log.Println(err)
 			return
 		}
+
 		go copy1(stream, client)
 		copy2(client, stream)
 	}
@@ -187,7 +205,7 @@ func (s *server) isPac(ip string, domain string) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			if search.Country != "中国" {
+			if search.Country == "中国" {
 				return true, nil
 			}
 		}
@@ -201,7 +219,7 @@ func (s *server) isPac(ip string, domain string) (bool, error) {
 				if err != nil {
 					return false, err
 				}
-				if search.Country != "中国" {
+				if search.Country == "中国" {
 					return true, nil
 				}
 			}
@@ -211,6 +229,7 @@ func (s *server) isPac(ip string, domain string) (bool, error) {
 }
 
 func simple(client net.Conn, addr string) {
+	//log.Println("Simple ", addr)
 	addrs, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
 		return
@@ -225,7 +244,6 @@ func simple(client net.Conn, addr string) {
 	}
 
 	defer server.Close()
-	client.Write([]byte{0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}) //响应客户端连接成功
 	//进行转发
 	go io.Copy(server, client)
 	io.Copy(client, server)
