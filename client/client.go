@@ -36,7 +36,6 @@ O9yFZkNqkBkFl00M0GAR5wvO1W6pyC7tJfvgxd8C3mClltakOgIwXzDvpKz9eG4h
 `
 
 // ./client addr socketAddr user passwd
-// ./client 212.95.146.79:443 0.0.0.0:8081 user H40XGXtW2
 func main() {
 	//log.SetFlags(log.LstdFlags | log.Llongfile)
 	if len(os.Args) < 5 {
