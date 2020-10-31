@@ -13,3 +13,11 @@ SSLKey:
 	openssl genrsa -out cert/server.key 2048
 	openssl ecparam -genkey -name secp384r1 -out cert/serveryek
 	openssl req -new -x509 -sha256 -key cert/serveryek -out cert/servermpe -days 3650  # plumber
+
+build_agent:
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o plumber_darwin -ldflags "-s -w" client/client.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o plumber_linux -ldflags "-s -w" client/client.go
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o plumber.exe -ldflags "-s -w" client/client.go
+	upx plumber_darwin
+	upx plumber_linux
+	upx plumber.exe

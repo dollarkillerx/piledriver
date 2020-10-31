@@ -211,7 +211,7 @@ func (s *server) isPac(ip string, domain string) (bool, error) {
 		if domain != "" {
 			lookupIP, err := net.LookupIP(domain)
 			if err != nil {
-				return false, err
+				return false, nil
 			}
 			if len(lookupIP) >= 1 {
 				search, err := utils.IP2.MemorySearch(lookupIP[0].String())
