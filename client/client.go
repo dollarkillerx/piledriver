@@ -5,16 +5,16 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"github.com/dollarkillerx/easy_dns"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"io"
 	"log"
 	"net"
 	"os"
+	"plumber/rpc"
 	"plumber/utils"
 	"strconv"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"plumber/rpc"
 )
 
 const pem = `
@@ -37,7 +37,7 @@ O9yFZkNqkBkFl00M0GAR5wvO1W6pyC7tJfvgxd8C3mClltakOgIwXzDvpKz9eG4h
 
 // ./client addr socketAddr user passwd
 func main() {
-	//log.SetFlags(log.LstdFlags | log.Llongfile)
+	log.SetFlags(log.LstdFlags | log.Llongfile)
 	if len(os.Args) < 5 {
 		log.Fatalln("what fuck???")
 	}
@@ -69,6 +69,7 @@ func main() {
 
 type server struct {
 	client rpc.PlumberClient
+	dns    string
 	pac    bool
 }
 
@@ -84,7 +85,11 @@ func New(addr string) *server {
 	}))
 
 	client := rpc.NewPlumberClient(conn)
-	return &server{client: client}
+	if len(os.Args) > 5 {
+		return &server{client: client, dns: os.Args[5]}
+	} else {
+		return &server{client: client}
+	}
 }
 
 func (s *server) handleClientRequest(client net.Conn) {
@@ -151,7 +156,6 @@ func (s *server) handleClientRequest(client net.Conn) {
 			return
 		}
 
-
 		if err := stream.Send(&rpc.PlumberRequest{
 			Addr: addr,
 		}); err != nil {
@@ -202,6 +206,7 @@ func (s *server) isPac(ip string, domain string) (bool, error) {
 		if ip != "" {
 			search, err := utils.IP2.MemorySearch(ip)
 			if err != nil {
+				log.Println(err)
 				return false, err
 			}
 			if search.Country == "中国" {
@@ -209,19 +214,44 @@ func (s *server) isPac(ip string, domain string) (bool, error) {
 			}
 		}
 		if domain != "" {
-			lookupIP, err := net.LookupIP(domain)
+			ipSimple, err := easy_dns.LookupIPSimple(domain, s.dns)
 			if err != nil {
 				return false, nil
 			}
-			if len(lookupIP) >= 1 {
-				search, err := utils.IP2.MemorySearch(lookupIP[0].String())
-				if err != nil {
-					return false, err
-				}
-				if search.Country == "中国" {
-					return true, nil
-				}
+			if ipSimple == ""{
+				return false, nil
 			}
+
+			search, err := utils.IP2.MemorySearch(ipSimple)
+			if err != nil {
+				return false, err
+			}
+			if search.Country == "中国" {
+				return true, nil
+			}
+			//now := time.Now()
+			//lookupIP, err := net.LookupIP(domain)
+			//since := time.Since(now)
+			//log.Println(since.Milliseconds())
+			//if err != nil {
+			//	log.Println(err)
+			//	return false, nil
+			//}
+			//if len(lookupIP) == 0 {
+			//	log.Println("0")
+			//	return false, nil
+			//}
+			//
+			//if len(lookupIP[0]) >= 1 {
+			//	search, err := utils.IP2.MemorySearch(lookupIP[0].String())
+			//	if err != nil {
+			//		log.Println(err)
+			//		return false, err
+			//	}
+			//	if search.Country == "中国" {
+			//		return true, nil
+			//	}
+			//}
 		}
 	}
 	return false, nil
