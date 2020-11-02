@@ -3,6 +3,12 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
+github.com/dollarkillerx/easy_dns v0.0.0-20201101124842-759c84d8947e h1:3su4KgjqiJHPAsZiE3QC2+gWkAS6zxmIVQTNFX3YqMw=
+github.com/dollarkillerx/easy_dns v0.0.0-20201101124842-759c84d8947e/go.mod h1:2AEPU35Ha8Hi1lYPQp1F+GQTir+lzAd1U3jNGUnXCBw=
+github.com/dollarkillerx/easy_dns v0.0.1 h1:1CRhXYDE3rNbAib+n0tH2eFoFTPXvBsGnpp+J8o5rNE=
+github.com/dollarkillerx/easy_dns v0.0.1/go.mod h1:2AEPU35Ha8Hi1lYPQp1F+GQTir+lzAd1U3jNGUnXCBw=
+github.com/dollarkillerx/easy_dns v0.0.2 h1:Xp3xluRMaSEsZSNa4jZWgCrMgYcqZUjMnoWxSr41iXc=
+github.com/dollarkillerx/easy_dns v0.0.2/go.mod h1:2AEPU35Ha8Hi1lYPQp1F+GQTir+lzAd1U3jNGUnXCBw=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=

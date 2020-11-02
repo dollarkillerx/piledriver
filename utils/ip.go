@@ -16,4 +16,3 @@ func init() {
 	IP2 = region
 	log.Println("Ip2Region Success")
 }
-
