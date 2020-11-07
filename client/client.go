@@ -5,16 +5,19 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/dollarkillerx/easy_dns"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"io"
 	"log"
 	"net"
 	"os"
 	"plumber/rpc"
+	"plumber/storage"
 	"plumber/utils"
 	"strconv"
+	"time"
+
+	"github.com/dollarkillerx/easy_dns"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 const pem = `
@@ -209,16 +212,17 @@ func (s *server) isPac(ip string, domain string) (bool, error) {
 				log.Println(err)
 				return false, err
 			}
-			if search.Country == "中国" {
+			if search.Country == "中国" || search.Country == "0" {
 				return true, nil
 			}
 		}
 		if domain != "" {
-			ipSimple, err := easy_dns.LookupIPSimple(domain, s.dns)
+			//ipSimple, err := easy_dns.LookupIPSimple(domain, s.dns)
+			ipSimple, err := lookIP(domain, s.dns)
 			if err != nil {
 				return false, nil
 			}
-			if ipSimple == ""{
+			if ipSimple == "" {
 				return false, nil
 			}
 
@@ -226,39 +230,43 @@ func (s *server) isPac(ip string, domain string) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			if search.Country == "中国" {
+			if search.Country == "中国" || search.Country == "0" {
 				return true, nil
 			}
-			//now := time.Now()
-			//lookupIP, err := net.LookupIP(domain)
-			//since := time.Since(now)
-			//log.Println(since.Milliseconds())
-			//if err != nil {
-			//	log.Println(err)
-			//	return false, nil
-			//}
-			//if len(lookupIP) == 0 {
-			//	log.Println("0")
-			//	return false, nil
-			//}
-			//
-			//if len(lookupIP[0]) >= 1 {
-			//	search, err := utils.IP2.MemorySearch(lookupIP[0].String())
-			//	if err != nil {
-			//		log.Println(err)
-			//		return false, err
-			//	}
-			//	if search.Country == "中国" {
-			//		return true, nil
-			//	}
-			//}
 		}
 	}
 	return false, nil
 }
 
+func lookIP(domain string, dns string) (string, error) {
+	var ip string
+	var ttl uint32
+	ipb, err := storage.Storage.Get(domain)
+	if err == nil {
+		return ipb.(string), nil
+	}
+
+	lookupIP, err := easy_dns.LookupIP(domain, dns)
+	if err != nil {
+		return "", err
+	}
+	for _, v := range lookupIP.Answers {
+		if v.Header.Type == easy_dns.TypeA {
+			ip = v.Body.GoString()
+			ttl = v.Header.TTL
+			storage.Storage.SetWithExpire(domain, ip, time.Second*time.Duration(ttl))
+			break
+		}
+	}
+
+	if ip == "" {
+		return "", fmt.Errorf("not fund")
+	}
+
+	return ip, nil
+}
+
 func simple(client net.Conn, addr string) {
-	//log.Println("Simple ", addr)
 	addrs, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
 		return
