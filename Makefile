@@ -6,6 +6,10 @@ build_agent:
 	upx piledriver_core_linux
 	upx piledriver_core.exe
 
+build_server:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o piledriver_server -ldflags "-s -w" server/server.go
+	upx piledriver_server
+
 Generate:
 	@echo 'Build GRPC'
 	protoc -I rpc/proto/ rpc/proto/*.proto --go_out=plugins=grpc:rpc/proto/.

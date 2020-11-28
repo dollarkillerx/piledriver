@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
 	"plumber/rpc"
 
 	"google.golang.org/grpc"
@@ -46,8 +47,10 @@ BbThJeCFdNO1ife81fuqzxWx4oSIGWY=
 
 func main() {
 	//log.SetFlags(log.Llongfile | log.LstdFlags)
-	addr := "0.0.0.0:443"
-	listen, err := net.Listen("tcp", addr)
+	if len(os.Args) != 4 {
+		log.Fatalln("./xxx addr user passwd")
+	}
+	listen, err := net.Listen("tcp", os.Args[1])
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -60,13 +63,13 @@ func main() {
 
 	srv := grpc.NewServer(
 		grpc.Creds(creds),
-		grpc.StreamInterceptor(streamInterceptor("user", "H40XGXtW2")),
-		grpc.UnaryInterceptor(unaryInterceptor("user", "H40XGXtW2")),
+		grpc.StreamInterceptor(streamInterceptor(os.Args[2], os.Args[3])),
+		grpc.UnaryInterceptor(unaryInterceptor(os.Args[2], os.Args[3])),
 	)
 	rpc.RegisterPlumberServer(srv, &server{})
 	reflection.Register(srv)
 
-	log.Println(addr)
+	log.Println(os.Args[1])
 	if err := srv.Serve(listen); err != nil {
 		log.Fatalln(err)
 	}
