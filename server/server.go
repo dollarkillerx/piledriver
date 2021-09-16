@@ -62,7 +62,7 @@ func (p *PiledriverHandler) ServeHTTP(write http.ResponseWriter, req *http.Reque
 				return
 			}
 
-			fmt.Println(data)
+			fmt.Println(string(data))
 
 			err = conn.WriteMessage(websocket.TextMessage, data)
 			if err != nil {
