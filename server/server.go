@@ -5,14 +5,11 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/dollarkillerx/urllib"
+	"github.com/gorilla/websocket"
 )
-
-func proxy(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte("Secure Hello World.\n"))
-}
 
 var url string
 var target string
@@ -24,9 +21,56 @@ func init() {
 
 type PiledriverHandler struct{}
 
+//func middlewareAuth(route Handler) Handler {
+//	return func (write http.ResponseWriter, req *http.Request) {
+//		token := req.Header.Get("token")
+//		// 当用户校验通过设置用户的value
+//		if token == "token" {
+//			//r.ParseForm()
+//			//r.PostForm.Set("userid", "dollarkiller")
+//			route(write,req)
+//			return
+//		}
+//		write.WriteHeader(401)
+//		write.Write([]byte("401"))
+//	}
+//}
+
+var (
+	upgrader = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+	clientMap sync.Map
+)
+
+type Handler func(write http.ResponseWriter, req *http.Request)
+
 func (p *PiledriverHandler) ServeHTTP(write http.ResponseWriter, req *http.Request) {
 	switch req.URL.String() {
 	case fmt.Sprintf("/%s", url):
+		conn, err := upgrader.Upgrade(write, req, nil)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		for {
+			_, data, err := conn.ReadMessage()
+			if err != nil {
+				log.Println(err)
+				return
+			}
+
+			fmt.Println(data)
+
+			err = conn.WriteMessage(websocket.TextMessage, data)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+		}
+
 	default:
 		targetUr := fmt.Sprintf("%s/%s", target, req.URL.String())
 		code, original, err := urllib.Get(targetUr).ByteOriginal()
