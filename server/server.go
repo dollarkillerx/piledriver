@@ -50,6 +50,11 @@ type Handler func(write http.ResponseWriter, req *http.Request)
 func (p *PiledriverHandler) ServeHTTP(write http.ResponseWriter, req *http.Request) {
 	switch req.URL.String() {
 	case fmt.Sprintf("/%s", url):
+		if req.Header.Get("token") != "token" {
+			write.WriteHeader(401)
+			write.Write([]byte("401"))
+			return
+		}
 		conn, err := upgrader.Upgrade(write, req, nil)
 		if err != nil {
 			log.Println(err)

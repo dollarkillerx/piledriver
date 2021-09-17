@@ -5,6 +5,7 @@ import (
 	"flag"
 	"log"
 	"net"
+	"net/http"
 	"net/url"
 
 	"github.com/gorilla/websocket"
@@ -31,8 +32,6 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	c := initClient()
-
 	for {
 		accept, err := conn.Accept()
 		if err != nil {
@@ -40,11 +39,13 @@ func main() {
 			continue
 		}
 
+		c, err := initClient()
+		if err != nil {
+			log.Println(err)
+			continue
+		}
 		go c.accept(accept)
 	}
-
-	// WST
-
 }
 
 type client struct {
@@ -55,17 +56,16 @@ func (c *client) accept(conn net.Conn) {
 
 }
 
-func initClient() *client {
+func initClient() (*client, error) {
 	u := url.URL{Scheme: "wss", Host: *remoteHost, Path: *remotePath}
 
 	dialer := &websocket.Dialer{TLSClientConfig: &tls.Config{RootCAs: nil, InsecureSkipVerify: true}}
-	dial, _, err := dialer.Dial(u.String(), nil)
+	dial, _, err := dialer.Dial(u.String(), http.Header{"token": []string{*token}})
 	if err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
-	//defer dial.Close()
 
-	return &client{conn: dial}
+	return &client{conn: dial}, nil
 	//for {
 	//	var cmd string
 	//	fmt.Print("exe: ")
@@ -77,7 +77,7 @@ func initClient() *client {
 	//	err := dial.WriteMessage(websocket.TextMessage, []byte(cmd))
 	//	if err != nil {
 	//		log.Println(err)
-	//		return
+	//		return nil, err
 	//	}
 	//
 	//	_, p, err := dial.ReadMessage()
@@ -88,4 +88,6 @@ func initClient() *client {
 	//
 	//	fmt.Println("r: ", string(p))
 	//}
+	//
+	//return nil, err
 }
