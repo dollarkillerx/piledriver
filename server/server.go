@@ -1,8 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"io"
 	"log"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -11,30 +14,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var url string
-var target string
-
-func init() {
-	url = "piledriver"
-	target = "https://www.dollarkiller.com/light/view/"
-}
+var localHost = flag.String("local_host", "0.0.0.0:8020", "Local Host")
+var token = flag.String("token", "piledriver", "token auth")
+var url = flag.String("url", "piledriver", "url")
+var target = flag.String("target", "https://www.dollarkiller.com/light/view/", "target")
 
 type PiledriverHandler struct{}
-
-//func middlewareAuth(route Handler) Handler {
-//	return func (write http.ResponseWriter, req *http.Request) {
-//		token := req.Header.Get("token")
-//		// 当用户校验通过设置用户的value
-//		if token == "token" {
-//			//r.ParseForm()
-//			//r.PostForm.Set("userid", "dollarkiller")
-//			route(write,req)
-//			return
-//		}
-//		write.WriteHeader(401)
-//		write.Write([]byte("401"))
-//	}
-//}
 
 var (
 	upgrader = websocket.Upgrader{
@@ -48,34 +33,49 @@ var (
 type Handler func(write http.ResponseWriter, req *http.Request)
 
 func (p *PiledriverHandler) ServeHTTP(write http.ResponseWriter, req *http.Request) {
-	switch req.URL.String() {
-	case fmt.Sprintf("/%s", url):
-		if req.Header.Get("token") != "token" {
-			write.WriteHeader(401)
-			write.Write([]byte("401"))
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Printf("%s\n", err)
 			return
 		}
+	}()
+
+	switch req.URL.String() {
+	case fmt.Sprintf("/%s", *url):
+		if req.Header.Get("token") != *token {
+			write.WriteHeader(401)
+			write.Write([]byte("401"))
+			log.Println("RemoteAddr: ", req.RemoteAddr, " token : ", token, "  error")
+			return
+		}
+
 		conn, err := upgrader.Upgrade(write, req, nil)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		for {
-			_, data, err := conn.ReadMessage()
-			if err != nil {
-				log.Println(err)
-				return
+		_, data, err := conn.ReadMessage()
+		if err != nil {
+			if err != websocket.ErrCloseSent {
+				//log.Println(err)
 			}
-
-			fmt.Println(string(data))
-
-			err = conn.WriteMessage(websocket.TextMessage, data)
-			if err != nil {
-				log.Println(err)
-				return
-			}
+			return
 		}
 
+		addr := string(data)
+		ipAddr, err := net.ResolveTCPAddr("tcp", addr)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		dial, err := net.DialTCP("tcp", nil, ipAddr)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		go copy1(dial, conn)
+		copy2(conn, dial)
 	default:
 		targetUr := fmt.Sprintf("%s/%s", target, req.URL.String())
 		code, original, err := urllib.Get(targetUr).ByteOriginal()
@@ -99,9 +99,42 @@ func (p *PiledriverHandler) ServeHTTP(write http.ResponseWriter, req *http.Reque
 }
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Llongfile)
+
 	ser := &PiledriverHandler{}
-	err := http.ListenAndServeTLS(":8020", "./key/server.crt", "./key/server.key", ser)
+	err := http.ListenAndServeTLS(*localHost, "./key/server.crt", "./key/server.key", ser)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
+	}
+}
+
+func copy1(server io.Writer, conn *websocket.Conn) {
+	for {
+		_, r, err := conn.ReadMessage()
+		if err != nil {
+			return
+		}
+
+		_, err = server.Write(r)
+		if err != nil {
+			return
+		}
+	}
+}
+
+func copy2(conn *websocket.Conn, client io.Reader) {
+	for {
+		var b [1024]byte
+		read, err := client.Read(b[:])
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			break
+		}
+
+		if err := conn.WriteMessage(websocket.BinaryMessage, b[:read]); err != nil {
+			break
+		}
 	}
 }

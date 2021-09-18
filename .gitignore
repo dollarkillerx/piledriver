@@ -22,3 +22,6 @@ plumber.exe
 plumber_darwin
 plumber_linux
 pct.md
+
+piledriver_core_linux
+piledriver_server

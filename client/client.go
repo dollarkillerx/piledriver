@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -19,10 +20,12 @@ var localPassword = flag.String("local_password", "piledriver", "Local Password"
 var pacDns = flag.String("pac_dns", "", "Pac Dns")
 var remoteHost = flag.String("remote_host", "127.0.0.1:8020", "Remote Host")
 var remotePath = flag.String("remote_path", "/piledriver", "Remote PATH")
-var token = flag.String("token", "", "token auth")
+var token = flag.String("token", "piledriver", "token auth")
 
 func main() {
 	flag.Parse()
+
+	log.SetFlags(log.LstdFlags | log.Llongfile)
 
 	// Local
 	addr, err := net.ResolveTCPAddr("tcp", *localHost)
@@ -43,7 +46,7 @@ func main() {
 
 		c, err := initClient()
 		if err != nil {
-			log.Println(err)
+			//log.Println(err)
 			continue
 		}
 		go c.accept(accept)
@@ -91,7 +94,6 @@ func (c *client) accept(conn net.Conn) {
 		host = net.IPv4(b[4], b[5], b[6], b[7]).String()
 	case 0x03: // domain
 		host = string(b[5 : n-2]) //b[4]表示域名的长度
-
 	case 0x04: // ipv6
 		return
 	}
@@ -109,7 +111,8 @@ func (c *client) accept(conn net.Conn) {
 		return
 	}
 
-	// COPY
+	go copy1(c.conn, conn)
+	copy2(conn, c.conn)
 }
 
 func initClient() (*client, error) {
@@ -122,4 +125,35 @@ func initClient() (*client, error) {
 	}
 
 	return &client{conn: dial}, nil
+}
+
+func copy1(conn *websocket.Conn, client io.Reader) {
+	for {
+		var b [1024]byte
+		read, err := client.Read(b[:])
+		if err != nil {
+			if err == io.EOF {
+				conn.Close()
+				break
+			}
+			break
+		}
+
+		if err := conn.WriteMessage(websocket.BinaryMessage, b[:read]); err != nil {
+			break
+		}
+	}
+}
+
+func copy2(client io.Writer, conn *websocket.Conn) {
+	for {
+		_, byt, err := conn.ReadMessage()
+		if err != nil {
+			return
+		}
+
+		if _, err := client.Write(byt); err != nil {
+			break
+		}
+	}
 }
