@@ -3,10 +3,12 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"github.com/gorilla/websocket"
 )
@@ -53,7 +55,61 @@ type client struct {
 }
 
 func (c *client) accept(conn net.Conn) {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Printf("%s\n", err)
+			return
+		}
+	}()
 
+	if conn == nil {
+		return
+	}
+
+	defer conn.Close()
+
+	var b [1024]byte
+	_, err := conn.Read(b[:])
+	if err != nil {
+		return
+	}
+
+	if b[0] != 0x05 {
+		return
+	}
+
+	conn.Write([]byte{0x05, 0x00})
+	n, err := conn.Read(b[:])
+	if err != nil {
+		return
+	}
+
+	// 解析目的地
+	var host, port string
+	switch b[3] {
+	case 0x01: // ip
+		host = net.IPv4(b[4], b[5], b[6], b[7]).String()
+	case 0x03: // domain
+		host = string(b[5 : n-2]) //b[4]表示域名的长度
+
+	case 0x04: // ipv6
+		return
+	}
+
+	port = strconv.Itoa(int(b[n-2])<<8 | int(b[n-1]))
+	addr := net.JoinHostPort(host, port)
+
+	if _, err := conn.Write([]byte{0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}); err != nil { //响应客户端连接成功
+		return
+	}
+
+	err = c.conn.WriteMessage(websocket.TextMessage, []byte(addr))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	// COPY
 }
 
 func initClient() (*client, error) {
@@ -66,28 +122,4 @@ func initClient() (*client, error) {
 	}
 
 	return &client{conn: dial}, nil
-	//for {
-	//	var cmd string
-	//	fmt.Print("exe: ")
-	//	fmt.Scanln(&cmd)
-	//	if cmd == "" || cmd == "exit" {
-	//		break
-	//	}
-	//
-	//	err := dial.WriteMessage(websocket.TextMessage, []byte(cmd))
-	//	if err != nil {
-	//		log.Println(err)
-	//		return nil, err
-	//	}
-	//
-	//	_, p, err := dial.ReadMessage()
-	//	if err != nil {
-	//		log.Println(err)
-	//		break
-	//	}
-	//
-	//	fmt.Println("r: ", string(p))
-	//}
-	//
-	//return nil, err
 }
