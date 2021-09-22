@@ -15,7 +15,6 @@
 # vendor/
 .idea
 .vscode
-ip2region.db
 
 plumber
 plumber.exe
@@ -23,5 +22,10 @@ plumber_darwin
 plumber_linux
 pct.md
 
+piledriver_core.exe
+piledriver_core_darwin
 piledriver_core_linux
 piledriver_server
+
+dns.cache
+dns.cache/*

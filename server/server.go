@@ -74,6 +74,11 @@ func (p *PiledriverHandler) ServeHTTP(write http.ResponseWriter, req *http.Reque
 			return
 		}
 
+		dial.SetLinger(0)
+		defer func() {
+			dial.Close()
+		}()
+
 		go copy1(dial, conn)
 		copy2(conn, dial)
 	default:
@@ -99,6 +104,8 @@ func (p *PiledriverHandler) ServeHTTP(write http.ResponseWriter, req *http.Reque
 }
 
 func main() {
+	flag.Parse()
+
 	log.SetFlags(log.LstdFlags | log.Llongfile)
 
 	ser := &PiledriverHandler{}
