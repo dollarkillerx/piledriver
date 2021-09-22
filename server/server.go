@@ -14,7 +14,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var localHost = flag.String("local_host", "0.0.0.0:8020", "Local Host")
+var localHost = flag.String("local_host", "0.0.0.0:443", "Local Host")
 var token = flag.String("token", "piledriver", "token auth")
 var url = flag.String("url", "piledriver", "url")
 var target = flag.String("target", "https://www.dollarkiller.com/light/view/", "target")
@@ -45,7 +45,7 @@ func (p *PiledriverHandler) ServeHTTP(write http.ResponseWriter, req *http.Reque
 		if req.Header.Get("token") != *token {
 			write.WriteHeader(401)
 			write.Write([]byte("401"))
-			log.Println("RemoteAddr: ", req.RemoteAddr, " token : ", token, "  error")
+			log.Println("RemoteAddr: ", req.RemoteAddr, " token : ", *token, "  error")
 			return
 		}
 
@@ -77,7 +77,7 @@ func (p *PiledriverHandler) ServeHTTP(write http.ResponseWriter, req *http.Reque
 		go copy1(dial, conn)
 		copy2(conn, dial)
 	default:
-		targetUr := fmt.Sprintf("%s/%s", target, req.URL.String())
+		targetUr := fmt.Sprintf("%s/%s", *target, req.URL.String())
 		code, original, err := urllib.Get(targetUr).ByteOriginal()
 		if err != nil {
 			write.WriteHeader(500)

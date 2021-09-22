@@ -10,14 +10,18 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
+	"github.com/dgraph-io/badger/v2"
+	"github.com/dollarkillerx/easy_dns"
 	"github.com/gorilla/websocket"
 )
 
 var localHost = flag.String("local_host", "127.0.0.1:9871", "Local Host")
 var localUser = flag.String("local_user", "piledriver", "Local User")
 var localPassword = flag.String("local_password", "piledriver", "Local Password")
-var pacDns = flag.String("pac_dns", "", "Pac Dns")
+var pacDns = flag.String("pac_dns", "8.8.8.8", "Pac Dns")
+var pac = flag.Bool("pac", false, "pac")
 var remoteHost = flag.String("remote_host", "127.0.0.1:8020", "Remote Host")
 var remotePath = flag.String("remote_path", "/piledriver", "Remote PATH")
 var token = flag.String("token", "piledriver", "token auth")
@@ -26,6 +30,8 @@ func main() {
 	flag.Parse()
 
 	log.SetFlags(log.LstdFlags | log.Llongfile)
+
+	initStorage()
 
 	// Local
 	addr, err := net.ResolveTCPAddr("tcp", *localHost)
@@ -87,6 +93,7 @@ func (c *client) accept(conn net.Conn) {
 		return
 	}
 
+	var domain bool
 	// 解析目的地
 	var host, port string
 	switch b[3] {
@@ -94,9 +101,12 @@ func (c *client) accept(conn net.Conn) {
 		host = net.IPv4(b[4], b[5], b[6], b[7]).String()
 	case 0x03: // domain
 		host = string(b[5 : n-2]) //b[4]表示域名的长度
+		domain = true
 	case 0x04: // ipv6
 		return
 	}
+
+	usePac(host, *pac, domain)
 
 	port = strconv.Itoa(int(b[n-2])<<8 | int(b[n-1]))
 	addr := net.JoinHostPort(host, port)
@@ -156,4 +166,104 @@ func copy2(client io.Writer, conn *websocket.Conn) {
 			break
 		}
 	}
+}
+
+func usePac(host string, pac bool, website bool) bool {
+	if !pac {
+		return false
+	}
+
+	var ip string
+
+	rb, err := Storage.Get([]byte(host))
+	if err != nil {
+		if website {
+			lookupIP, err := lockDns(host, *pacDns)
+			if err != nil {
+				// 如果不存在则查询内网DNS
+				lookupHost, err := net.LookupHost(host)
+				if err != nil {
+					log.Println(err)
+					return false
+				} else {
+					if len(lookupHost) > 0 {
+						ip = lookupHost[0]
+					} else {
+						return false
+					}
+				}
+			}
+			if len(lookupIP) > 0 {
+				ip = lookupIP[0]
+			} else {
+				return false
+			}
+		}
+	} else {
+		ip = string(rb)
+	}
+
+	// TODO: 检测IP
+	ip = ip
+	return true
+}
+
+type storage struct {
+	db *badger.DB
+}
+
+var Storage *storage
+
+func initStorage() {
+	open, err := badger.Open(badger.DefaultOptions("./dns.cache"))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	Storage = &storage{db: open}
+}
+
+func (l *storage) Set(key, val []byte, tll int64) error {
+	return l.db.Update(func(txn *badger.Txn) error {
+		entry := badger.NewEntry(key, val)
+		if tll != 0 {
+			entry = entry.WithTTL(time.Duration(tll))
+		}
+		return txn.SetEntry(entry)
+	})
+}
+
+func (l *storage) Get(key []byte) (value []byte, err error) {
+	err = l.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get(key)
+		if err != nil {
+			return err
+		}
+
+		return item.Value(func(val []byte) error {
+			value = val
+			return nil
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return value, nil
+}
+
+func lockDns(domain string, dns string) ([]string, error) {
+	lookupIP, err := easy_dns.LookupIP(domain, dns)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []string
+	for _, v := range lookupIP.Answers {
+		if v.Header.Type == easy_dns.TypeA {
+			result = append(result, v.Body.GoString())
+		}
+	}
+
+	return result, nil
 }
