@@ -7,4 +7,5 @@ require (
 	github.com/dollarkillerx/easy_dns v0.0.2
 	github.com/dollarkillerx/urllib v1.13.12
 	github.com/gorilla/websocket v1.4.2
+	github.com/lionsoul2014/ip2region v2.2.0-release+incompatible
 )

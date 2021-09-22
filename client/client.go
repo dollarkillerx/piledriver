@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"plumber/utils"
 	"strconv"
 	"time"
 
@@ -198,14 +199,23 @@ func usePac(host string, pac bool, website bool) bool {
 			} else {
 				return false
 			}
+
+			Storage.Set([]byte(host), []byte(ip), 4*time.Hour)
 		}
 	} else {
 		ip = string(rb)
 	}
 
 	// TODO: 检测IP
-	ip = ip
-	return true
+	search, err := utils.IP2.MemorySearch(ip)
+	if err != nil {
+		return false
+	}
+	if search.Country == "中国" {
+		return true
+	}
+
+	return false
 }
 
 type storage struct {
@@ -223,11 +233,11 @@ func initStorage() {
 	Storage = &storage{db: open}
 }
 
-func (l *storage) Set(key, val []byte, tll int64) error {
+func (l *storage) Set(key, val []byte, tll time.Duration) error {
 	return l.db.Update(func(txn *badger.Txn) error {
 		entry := badger.NewEntry(key, val)
 		if tll != 0 {
-			entry = entry.WithTTL(time.Duration(tll))
+			entry = entry.WithTTL(tll)
 		}
 		return txn.SetEntry(entry)
 	})
