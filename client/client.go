@@ -112,12 +112,12 @@ func (c *client) accept(conn net.Conn) {
 	port = strconv.Itoa(int(b[n-2])<<8 | int(b[n-1]))
 	addr := net.JoinHostPort(host, port)
 
-	if isPac {
-		simple(conn, addr)
+	if _, err := conn.Write([]byte{0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}); err != nil { //响应客户端连接成功
 		return
 	}
 
-	if _, err := conn.Write([]byte{0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}); err != nil { //响应客户端连接成功
+	if isPac {
+		simple(conn, addr)
 		return
 	}
 
@@ -285,16 +285,16 @@ func lockDns(domain string, dns string) ([]string, error) {
 func simple(client net.Conn, addr string) {
 	addrs, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
+		log.Println(err)
 		return
 	}
 	server, err := net.DialTCP("tcp", nil, addrs)
 	if err != nil {
+		log.Println(err)
 		return
 	}
 
-	if err := server.SetLinger(0); err != nil {
-		return
-	}
+	server.SetLinger(0)
 
 	defer server.Close()
 	//进行转发
