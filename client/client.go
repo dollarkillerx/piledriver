@@ -201,7 +201,7 @@ func usePac(host string, pac bool, website bool) bool {
 			}
 			if len(lookupIP) > 0 {
 				ip = lookupIP[0]
-			} else {
+			} else if len(ip) == 0 {
 				return false
 			}
 
@@ -216,10 +216,9 @@ func usePac(host string, pac bool, website bool) bool {
 	if err != nil {
 		return false
 	}
-	if search.Country == "中国" {
+	if search.Country == "中国" || search.Country == "0" {
 		return true
 	}
-
 	return false
 }
 
