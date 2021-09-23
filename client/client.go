@@ -51,12 +51,14 @@ func main() {
 			continue
 		}
 
-		c, err := initClient()
-		if err != nil {
-			//log.Println(err)
-			continue
-		}
-		go c.accept(accept)
+		go func() {
+			c, err := initClient()
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			go c.accept(accept)
+		}()
 	}
 }
 
@@ -121,6 +123,12 @@ func (c *client) accept(conn net.Conn) {
 		return
 	}
 
+	err = c.initClient()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
 	err = c.conn.WriteMessage(websocket.TextMessage, []byte(addr))
 	if err != nil {
 		log.Println(err)
@@ -131,16 +139,21 @@ func (c *client) accept(conn net.Conn) {
 	copy2(conn, c.conn)
 }
 
-func initClient() (*client, error) {
+func (c *client) initClient() error {
 	u := url.URL{Scheme: "wss", Host: *remoteHost, Path: *remotePath}
 
 	dialer := &websocket.Dialer{TLSClientConfig: &tls.Config{RootCAs: nil, InsecureSkipVerify: true}}
 	dial, _, err := dialer.Dial(u.String(), http.Header{"token": []string{*token}})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &client{conn: dial}, nil
+	c.conn = dial
+	return nil
+}
+
+func initClient() (*client, error) {
+	return &client{}, nil
 }
 
 func copy1(conn *websocket.Conn, client io.Reader) {
@@ -216,7 +229,7 @@ func usePac(host string, pac bool, website bool) bool {
 	if err != nil {
 		return false
 	}
-	if search.Country == "中国" || search.Country == "0" {
+	if (search.Country == "中国" && search.Province != "台湾" && search.Province != "香港" && search.Province != " 澳门") || (search.Country == "0" && search.City == "内网IP") {
 		return true
 	}
 	return false

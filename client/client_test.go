@@ -40,7 +40,7 @@ func TestDns2(t *testing.T) {
 }
 
 func TestDns3(t *testing.T) {
-	host, err := net.LookupHost("chat.mvalley.com")
+	host, err := net.LookupHost("127.0.0.1")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -51,7 +51,8 @@ func TestDns3(t *testing.T) {
 		log.Fatalln(err)
 	}
 
-	fmt.Println(search.Country)
+	fmt.Println(search)
+	fmt.Println(search.Country, search.City, search.ISP, search.Region, search.Province)
 }
 
 func TestDns4(t *testing.T) {
