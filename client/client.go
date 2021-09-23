@@ -30,7 +30,7 @@ var token = flag.String("token", "piledriver", "token auth")
 func main() {
 	flag.Parse()
 
-	log.SetFlags(log.LstdFlags | log.Llongfile)
+	//log.SetFlags(log.LstdFlags | log.Llongfile)
 
 	initStorage()
 
