@@ -9,13 +9,17 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"plumber/pkg/models"
 	"plumber/utils"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/dollarkillerx/easy_dns"
+	"github.com/dollarkillerx/kvo"
 	"github.com/gorilla/websocket"
+	"github.com/rs/xid"
 )
 
 var localHost = flag.String("local_host", "127.0.0.1:9871", "Local Host")
@@ -26,11 +30,14 @@ var pac = flag.Bool("pac", false, "pac")
 var remoteHost = flag.String("remote_host", "127.0.0.1:8020", "Remote Host")
 var remotePath = flag.String("remote_path", "/piledriver", "Remote PATH")
 var token = flag.String("token", "piledriver", "token auth")
+var debug = flag.Bool("debug", false, "debug")
 
 func main() {
 	flag.Parse()
 
-	//log.SetFlags(log.LstdFlags | log.Llongfile)
+	if *debug {
+		log.SetFlags(log.LstdFlags | log.Llongfile)
+	}
 
 	initStorage()
 
@@ -44,6 +51,11 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	client, err := newClient()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	for {
 		accept, err := conn.Accept()
 		if err != nil {
@@ -51,19 +63,14 @@ func main() {
 			continue
 		}
 
-		go func() {
-			c, err := initClient()
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			go c.accept(accept)
-		}()
+		go client.accept(accept)
 	}
 }
 
 type client struct {
 	conn *websocket.Conn
+	kvo  *kvo.Kvo
+	mu   sync.Mutex
 }
 
 func (c *client) accept(conn net.Conn) {
@@ -123,23 +130,109 @@ func (c *client) accept(conn net.Conn) {
 		return
 	}
 
-	err = c.initClient()
+	// 初始化新的链接
+	clientID := xid.New().String()
+	tml := models.Tml{
+		ID:    clientID,
+		Start: true,
+		Data:  []byte(addr),
+	}
+	c.write(tml.ToBytes())
+
+	subscription, err := c.kvo.Subscription(tml.ID)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	err = c.conn.WriteMessage(websocket.TextMessage, []byte(addr))
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	go copy1(c.conn, conn)
-	copy2(conn, c.conn)
+	go c.copy1(conn, subscription, tml.ID)
+	copy2(conn, subscription, tml.ID)
 }
 
-func (c *client) initClient() error {
+func newClient() (*client, error) {
+	c := &client{kvo: kvo.New()}
+	err := c.reconnection()
+	if err != nil {
+		return nil, err
+	}
+
+	go c.readLoop()
+
+	return c, nil
+}
+
+func (c *client) readLoop() {
+	for {
+		_, msg, err := c.conn.ReadMessage()
+		if err != nil {
+			log.Println(err)
+			time.Sleep(time.Second)
+			continue
+		}
+		tml := models.Tml{}
+		err = tml.FromBytes(msg)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		if tml.Close {
+			err := c.kvo.Unsubscribe(tml.ID)
+			if err != nil {
+				log.Println(err)
+			}
+			continue
+		}
+
+		go func() {
+			err := c.kvo.Publish(tml.ID, tml)
+			if err != nil {
+				log.Println(err)
+			}
+		}()
+	}
+}
+
+func (c *client) write(data []byte) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	err := c.conn.WriteMessage(websocket.BinaryMessage, data)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+// heartbeatManager 心跳管理
+func (c *client) heartbeatManager() {
+	for {
+		time.Sleep(time.Second)
+		c.heartbeat()
+	}
+}
+
+// heartbeat 心跳
+func (c *client) heartbeat() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	err := c.conn.WriteMessage(websocket.PingMessage, []byte(""))
+	if err == nil {
+		return
+	}
+	log.Println(err)
+	for {
+		err := c.reconnection()
+		if err == nil {
+			return
+		}
+		log.Println(err)
+		time.Sleep(time.Second)
+	}
+}
+
+// reconnection 重连
+func (c *client) reconnection() error {
 	u := url.URL{Scheme: "wss", Host: *remoteHost, Path: *remotePath}
 
 	dialer := &websocket.Dialer{TLSClientConfig: &tls.Config{RootCAs: nil, InsecureSkipVerify: true}}
@@ -152,37 +245,43 @@ func (c *client) initClient() error {
 	return nil
 }
 
-func initClient() (*client, error) {
-	return &client{}, nil
-}
-
-func copy1(conn *websocket.Conn, client io.Reader) {
+func (c *client) copy1(client io.Reader, subscription *kvo.Channel, id string) {
 	for {
 		var b [1024]byte
 		read, err := client.Read(b[:])
 		if err != nil {
 			if err == io.EOF {
-				conn.Close()
+				closeSingle := models.Tml{ID: id, Close: true}
+				c.write(closeSingle.ToBytes())
 				break
+			}
+
+			if *debug {
+				log.Println(err)
 			}
 			break
 		}
 
-		if err := conn.WriteMessage(websocket.BinaryMessage, b[:read]); err != nil {
-			break
+		tml := models.Tml{
+			ID:   id,
+			Data: b[:read],
 		}
+
+		c.write(tml.ToBytes())
 	}
 }
 
-func copy2(client io.Writer, conn *websocket.Conn) {
+func copy2(client io.Writer, subscription *kvo.Channel, id string) {
 	for {
-		_, byt, err := conn.ReadMessage()
-		if err != nil {
-			return
-		}
-
-		if _, err := client.Write(byt); err != nil {
-			break
+		select {
+		case r, ex := <-subscription.Channel:
+			if ex {
+				break
+			}
+			rx := r.(models.Tml)
+			if _, err := client.Write(rx.Data); err != nil {
+				break
+			}
 		}
 	}
 }
