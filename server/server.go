@@ -18,6 +18,7 @@ var localHost = flag.String("local_host", "0.0.0.0:443", "Local Host")
 var token = flag.String("token", "piledriver", "token auth")
 var url = flag.String("url", "piledriver", "url")
 var target = flag.String("target", "https://www.dollarkiller.com/light/view/", "target")
+var debug = flag.Bool("debug", false, "debug")
 
 type PiledriverHandler struct{}
 
@@ -51,36 +52,12 @@ func (p *PiledriverHandler) ServeHTTP(write http.ResponseWriter, req *http.Reque
 
 		conn, err := upgrader.Upgrade(write, req, nil)
 		if err != nil {
-			log.Println(err)
-			return
-		}
-		_, data, err := conn.ReadMessage()
-		if err != nil {
-			if err != websocket.ErrCloseSent {
-				//log.Println(err)
+			if *debug {
+				log.Println(err)
 			}
 			return
 		}
-
-		addr := string(data)
-		ipAddr, err := net.ResolveTCPAddr("tcp", addr)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		dial, err := net.DialTCP("tcp", nil, ipAddr)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		dial.SetLinger(0)
-		defer func() {
-			dial.Close()
-		}()
-
-		go copy1(dial, conn)
-		copy2(conn, dial)
+		p.core(conn)
 	default:
 		targetUr := fmt.Sprintf("%s/%s", *target, req.URL.String())
 		code, original, err := urllib.Get(targetUr).ByteOriginal()
@@ -101,6 +78,42 @@ func (p *PiledriverHandler) ServeHTTP(write http.ResponseWriter, req *http.Reque
 		}
 		write.Write(original)
 	}
+}
+
+func (p *PiledriverHandler) core(conn *websocket.Conn) {
+	_, data, err := conn.ReadMessage()
+	if err != nil {
+		if err != websocket.ErrCloseSent {
+			if *debug {
+				log.Println(err)
+			}
+		}
+		return
+	}
+
+	addr := string(data)
+	ipAddr, err := net.ResolveTCPAddr("tcp", addr)
+	if err != nil {
+		if *debug {
+			log.Println(err)
+		}
+		return
+	}
+	dial, err := net.DialTCP("tcp", nil, ipAddr)
+	if err != nil {
+		if *debug {
+			log.Println(err)
+		}
+		return
+	}
+
+	dial.SetLinger(0)
+	defer func() {
+		dial.Close()
+	}()
+
+	go copy1(dial, conn)
+	copy2(conn, dial)
 }
 
 func main() {
