@@ -32,6 +32,8 @@ var remotePath = flag.String("remote_path", "/piledriver", "Remote PATH")
 var token = flag.String("token", "piledriver", "token auth")
 var debug = flag.Bool("debug", false, "debug")
 
+// TODO: 需要捕获所有异常  通知Server 关闭不必要的链接
+
 func main() {
 	flag.Parse()
 
@@ -97,7 +99,10 @@ func (c *client) accept(conn net.Conn) {
 		return
 	}
 
-	conn.Write([]byte{0x05, 0x00})
+	_, err = conn.Write([]byte{0x05, 0x00})
+	if err != nil {
+		return
+	}
 	n, err := conn.Read(b[:])
 	if err != nil {
 		return
@@ -156,6 +161,7 @@ func newClient() (*client, error) {
 		return nil, err
 	}
 
+	go c.heartbeatManager()
 	go c.readLoop()
 
 	return c, nil
@@ -176,14 +182,6 @@ func (c *client) readLoop() {
 			continue
 		}
 
-		if tml.Close {
-			err := c.kvo.Unsubscribe(tml.ID)
-			if err != nil {
-				log.Println(err)
-			}
-			continue
-		}
-
 		go func() {
 			err := c.kvo.Publish(tml.ID, tml)
 			if err != nil {
@@ -199,7 +197,9 @@ func (c *client) write(data []byte) {
 
 	err := c.conn.WriteMessage(websocket.BinaryMessage, data)
 	if err != nil {
-		log.Println(err)
+		if *debug {
+			log.Println(err)
+		}
 	}
 }
 
@@ -250,9 +250,10 @@ func (c *client) copy1(client io.Reader, subscription *kvo.Channel, id string) {
 		var b [1024]byte
 		read, err := client.Read(b[:])
 		if err != nil {
+			closeSingle := models.Tml{ID: id, Close: true}
+			c.write(closeSingle.ToBytes())
+
 			if err == io.EOF {
-				closeSingle := models.Tml{ID: id, Close: true}
-				c.write(closeSingle.ToBytes())
 				break
 			}
 
@@ -279,7 +280,14 @@ func copy2(client io.Writer, subscription *kvo.Channel, id string) {
 				break
 			}
 			rx := r.(models.Tml)
+			if rx.Close {
+				break
+			}
+
 			if _, err := client.Write(rx.Data); err != nil {
+				if *debug {
+					log.Println(err)
+				}
 				break
 			}
 		}
