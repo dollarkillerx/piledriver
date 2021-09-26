@@ -7,8 +7,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"plumber/pkg/models"
 	"strings"
-	"sync"
 
 	"github.com/dollarkillerx/urllib"
 	"github.com/gorilla/websocket"
@@ -28,7 +28,6 @@ var (
 			return true
 		},
 	}
-	clientMap sync.Map
 )
 
 type Handler func(write http.ResponseWriter, req *http.Request)
@@ -89,6 +88,24 @@ func (p *PiledriverHandler) core(conn *websocket.Conn) {
 			}
 		}
 		return
+	}
+
+	tml := models.Tml{}
+	err = tml.FromBytes(data)
+	if err != nil {
+		if *debug {
+			log.Println(err)
+		}
+		return
+	}
+
+	switch {
+	case tml.Start:
+
+	case tml.Close:
+
+	default:
+
 	}
 
 	addr := string(data)
