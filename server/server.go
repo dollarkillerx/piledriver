@@ -123,6 +123,29 @@ func (p *PiledriverHandler) core(conn *websocket.Conn) {
 			}
 			dial.SetLinger(0)
 			p.clientMap[tml.ID] = dial
+
+			go func() {
+				for {
+					var b [1024]byte
+					read, err := dial.Read(b[:])
+					if err != nil {
+						if err == io.EOF {
+							break
+						}
+						break
+					}
+
+					respTml := models.Tml{
+						ID:   tml.ID,
+						Data: b[:read],
+					}
+
+					if err := conn.WriteMessage(websocket.BinaryMessage, respTml.ToBytes()); err != nil {
+						break
+					}
+				}
+			}()
+
 			continue
 		case tml.Close:
 			p.clientMap[tml.ID].Close()
