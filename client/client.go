@@ -146,7 +146,6 @@ func (c *client) accept(conn net.Conn) {
 
 	subscription, err := c.kvo.Subscription(tml.ID)
 	if err != nil {
-		log.Println(err)
 		return
 	}
 

@@ -85,7 +85,7 @@ func (p *PiledriverHandler) ServeHTTP(write http.ResponseWriter, req *http.Reque
 
 func (p *PiledriverHandler) core(conn *websocket.Conn) {
 	for {
-		_, data, err := conn.ReadMessage()
+		msgType, data, err := conn.ReadMessage()
 		if err != nil {
 			if err != websocket.ErrCloseSent {
 				if *debug {
@@ -93,6 +93,10 @@ func (p *PiledriverHandler) core(conn *websocket.Conn) {
 				}
 			}
 			return
+		}
+
+		if msgType != websocket.BinaryMessage {
+			continue
 		}
 
 		tml := models.Tml{}
