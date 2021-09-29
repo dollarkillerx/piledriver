@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"plumber/pkg/models"
 	"strings"
+	"sync"
 
 	"github.com/dollarkillerx/urllib"
 	"github.com/gorilla/websocket"
@@ -20,7 +21,10 @@ var url = flag.String("url", "piledriver", "url")
 var target = flag.String("target", "https://www.dollarkiller.com/light/view/", "target")
 var debug = flag.Bool("debug", false, "debug")
 
-type PiledriverHandler struct{}
+type PiledriverHandler struct {
+	clientMap map[string]*net.TCPConn
+	mu        sync.Mutex
+}
 
 var (
 	upgrader = websocket.Upgrader{
@@ -80,57 +84,65 @@ func (p *PiledriverHandler) ServeHTTP(write http.ResponseWriter, req *http.Reque
 }
 
 func (p *PiledriverHandler) core(conn *websocket.Conn) {
-	_, data, err := conn.ReadMessage()
-	if err != nil {
-		if err != websocket.ErrCloseSent {
+	for {
+		_, data, err := conn.ReadMessage()
+		if err != nil {
+			if err != websocket.ErrCloseSent {
+				if *debug {
+					log.Println(err)
+				}
+			}
+			return
+		}
+
+		tml := models.Tml{}
+		err = tml.FromBytes(data)
+		if err != nil {
 			if *debug {
 				log.Println(err)
 			}
+			return
 		}
-		return
-	}
 
-	tml := models.Tml{}
-	err = tml.FromBytes(data)
-	if err != nil {
-		if *debug {
-			log.Println(err)
+		switch {
+		case tml.Start:
+			// TODO： 是否通知错误
+			addr, err := net.ResolveTCPAddr("tcp", string(tml.Data))
+			if err != nil {
+				if *debug {
+					log.Println(err)
+				}
+				return
+			}
+			dial, err := net.DialTCP("tcp", nil, addr)
+			if err != nil {
+				if *debug {
+					log.Println(err)
+				}
+				return
+			}
+			dial.SetLinger(0)
+			p.clientMap[tml.ID] = dial
+			continue
+		case tml.Close:
+			p.clientMap[tml.ID].Close()
+			delete(p.clientMap, tml.ID)
+			//TODO: 加代码
+			continue
+		default:
+			tcpConn, ex := p.clientMap[tml.ID]
+			if ex {
+				// TODO: 改
+				return
+			}
+
+			_, err := tcpConn.Write(tml.Data)
+			if err != nil {
+				// TODO: 改
+				return
+			}
 		}
-		return
 	}
-
-	switch {
-	case tml.Start:
-
-	case tml.Close:
-
-	default:
-
-	}
-
-	addr := string(data)
-	ipAddr, err := net.ResolveTCPAddr("tcp", addr)
-	if err != nil {
-		if *debug {
-			log.Println(err)
-		}
-		return
-	}
-	dial, err := net.DialTCP("tcp", nil, ipAddr)
-	if err != nil {
-		if *debug {
-			log.Println(err)
-		}
-		return
-	}
-
-	dial.SetLinger(0)
-	defer func() {
-		dial.Close()
-	}()
-
-	go copy1(dial, conn)
-	copy2(conn, dial)
 }
 
 func main() {
@@ -138,7 +150,7 @@ func main() {
 
 	log.SetFlags(log.LstdFlags | log.Llongfile)
 
-	ser := &PiledriverHandler{}
+	ser := &PiledriverHandler{clientMap: map[string]*net.TCPConn{}}
 	err := http.ListenAndServeTLS(*localHost, "./key/server.crt", "./key/server.key", ser)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
