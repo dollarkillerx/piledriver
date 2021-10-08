@@ -136,6 +136,9 @@ func (p *PiledriverHandler) core(conn *websocket.Conn) {
 						if err == io.EOF {
 							break
 						}
+						if *debug {
+							log.Println(err)
+						}
 						break
 					}
 
@@ -145,6 +148,9 @@ func (p *PiledriverHandler) core(conn *websocket.Conn) {
 					}
 
 					if err := conn.WriteMessage(websocket.BinaryMessage, respTml.ToBytes()); err != nil {
+						if *debug {
+							log.Println(err)
+						}
 						break
 					}
 				}
@@ -165,6 +171,9 @@ func (p *PiledriverHandler) core(conn *websocket.Conn) {
 
 			_, err := tcpConn.Write(tml.Data)
 			if err != nil {
+				if *debug {
+					log.Println(err)
+				}
 				// TODO: 改
 				return
 			}
