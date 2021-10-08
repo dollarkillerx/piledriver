@@ -180,6 +180,9 @@ func (c *client) readLoop() {
 			log.Println(err)
 			continue
 		}
+		if *debug {
+			fmt.Println("GetMSG: ", string(tml.ToBytes()))
+		}
 
 		go func() {
 			err := c.kvo.Publish(tml.ID, tml)
@@ -217,8 +220,10 @@ func (c *client) heartbeat() {
 
 	err := c.conn.WriteMessage(websocket.PingMessage, []byte(""))
 	if err == nil {
+		fmt.Println("PingMessage")
 		return
 	}
+
 	if *debug {
 		log.Println(err)
 	}
@@ -261,7 +266,7 @@ func (c *client) copy1(client io.Reader, subscription *kvo.Channel, id string) {
 			//}
 
 			if *debug {
-				log.Println(err)
+				log.Println(err, "id: ", id)
 			}
 			break
 		}

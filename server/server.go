@@ -85,6 +85,7 @@ func (p *PiledriverHandler) ServeHTTP(write http.ResponseWriter, req *http.Reque
 
 // close 关闭一个细小链接
 func (p *PiledriverHandler) close(conn *websocket.Conn, id string) {
+	fmt.Println("close ...")
 	respTml := models.Tml{
 		ID:    id,
 		Close: true,
@@ -94,7 +95,11 @@ func (p *PiledriverHandler) close(conn *websocket.Conn, id string) {
 }
 
 func (p *PiledriverHandler) core(conn *websocket.Conn) {
-	defer conn.Close()
+	fmt.Println("in: ", conn.RemoteAddr())
+	defer func() {
+		conn.Close()
+		fmt.Println("close: ", conn.RemoteAddr())
+	}()
 
 	// 解决主要矛盾:
 	// 1. 删除不必要的链接
@@ -124,6 +129,10 @@ func (p *PiledriverHandler) core(conn *websocket.Conn) {
 			return
 		}
 
+		if *debug {
+			fmt.Println("In Msg: ", tml.ID)
+		}
+
 		switch {
 		case tml.Start:
 			// TODO： 是否通知错误
@@ -147,6 +156,13 @@ func (p *PiledriverHandler) core(conn *websocket.Conn) {
 			p.clientMap[tml.ID] = dial
 
 			go func() {
+				// curl --socks5 127.0.0.1:8989 http://www.baidu.com
+				defer func() {
+					if err := recover(); err != nil {
+						fmt.Printf("%s\n", err)
+						return
+					}
+				}()
 				for {
 					var b [1024]byte
 					read, err := dial.Read(b[:])
@@ -180,9 +196,11 @@ func (p *PiledriverHandler) core(conn *websocket.Conn) {
 		//	//TODO: 加代码
 		//	continue
 		default:
+			fmt.Println("def: ", tml.ID)
 			tcpConn, ex := p.clientMap[tml.ID]
-			if ex {
+			if !ex {
 				// TODO: 改
+				fmt.Println("moz")
 				return
 			}
 
@@ -193,6 +211,7 @@ func (p *PiledriverHandler) core(conn *websocket.Conn) {
 				}
 				// TODO: 改
 				p.close(conn, tml.ID)
+				fmt.Println("moz  over")
 				return
 			}
 		}
