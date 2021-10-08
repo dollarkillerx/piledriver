@@ -83,7 +83,23 @@ func (p *PiledriverHandler) ServeHTTP(write http.ResponseWriter, req *http.Reque
 	}
 }
 
+// close 关闭一个细小链接
+func (p *PiledriverHandler) close(conn *websocket.Conn, id string) {
+	respTml := models.Tml{
+		ID:    id,
+		Close: true,
+	}
+
+	conn.WriteMessage(websocket.BinaryMessage, respTml.ToBytes())
+}
+
 func (p *PiledriverHandler) core(conn *websocket.Conn) {
+	defer conn.Close()
+
+	// 解决主要矛盾:
+	// 1. 删除不必要的链接
+	// 2. 区分通讯链接 和 数据链接
+
 	for {
 		msgType, data, err := conn.ReadMessage()
 		if err != nil {
@@ -116,6 +132,7 @@ func (p *PiledriverHandler) core(conn *websocket.Conn) {
 				if *debug {
 					log.Println(err)
 				}
+				p.close(conn, tml.ID)
 				return
 			}
 			dial, err := net.DialTCP("tcp", nil, addr)
@@ -123,6 +140,7 @@ func (p *PiledriverHandler) core(conn *websocket.Conn) {
 				if *debug {
 					log.Println(err)
 				}
+				p.close(conn, tml.ID)
 				return
 			}
 			dial.SetLinger(0)
@@ -133,13 +151,12 @@ func (p *PiledriverHandler) core(conn *websocket.Conn) {
 					var b [1024]byte
 					read, err := dial.Read(b[:])
 					if err != nil {
-						if err == io.EOF {
-							break
-						}
 						if *debug {
 							log.Println(err)
 						}
-						break
+
+						p.close(conn, tml.ID)
+						return
 					}
 
 					respTml := models.Tml{
@@ -151,17 +168,17 @@ func (p *PiledriverHandler) core(conn *websocket.Conn) {
 						if *debug {
 							log.Println(err)
 						}
-						break
+						return
 					}
 				}
 			}()
 
 			continue
-		case tml.Close:
-			p.clientMap[tml.ID].Close()
-			delete(p.clientMap, tml.ID)
-			//TODO: 加代码
-			continue
+		//case tml.Close:
+		//	p.clientMap[tml.ID].Close()
+		//	delete(p.clientMap, tml.ID)
+		//	//TODO: 加代码
+		//	continue
 		default:
 			tcpConn, ex := p.clientMap[tml.ID]
 			if ex {
@@ -175,6 +192,7 @@ func (p *PiledriverHandler) core(conn *websocket.Conn) {
 					log.Println(err)
 				}
 				// TODO: 改
+				p.close(conn, tml.ID)
 				return
 			}
 		}

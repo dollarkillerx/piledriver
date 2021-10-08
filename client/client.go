@@ -219,13 +219,17 @@ func (c *client) heartbeat() {
 	if err == nil {
 		return
 	}
-	log.Println(err)
+	if *debug {
+		log.Println(err)
+	}
 	for {
 		err := c.reconnection()
 		if err == nil {
 			return
 		}
-		log.Println(err)
+		if *debug {
+			log.Println(err)
+		}
 		time.Sleep(time.Second)
 	}
 }
@@ -249,12 +253,12 @@ func (c *client) copy1(client io.Reader, subscription *kvo.Channel, id string) {
 		var b [1024]byte
 		read, err := client.Read(b[:])
 		if err != nil {
-			closeSingle := models.Tml{ID: id, Close: true}
-			c.write(closeSingle.ToBytes())
+			//closeSingle := models.Tml{ID: id, Close: true}
+			//c.write(closeSingle.ToBytes())
 
-			if err == io.EOF {
-				break
-			}
+			//if err == io.EOF {
+			//	break
+			//}
 
 			if *debug {
 				log.Println(err)
@@ -272,22 +276,23 @@ func (c *client) copy1(client io.Reader, subscription *kvo.Channel, id string) {
 }
 
 func copy2(client io.Writer, subscription *kvo.Channel, id string) {
+loop:
 	for {
 		select {
 		case r, ex := <-subscription.Channel:
 			if ex {
-				break
+				break loop
 			}
 			rx := r.(models.Tml)
 			if rx.Close {
-				break
+				break loop
 			}
 
 			if _, err := client.Write(rx.Data); err != nil {
 				if *debug {
 					log.Println(err)
 				}
-				break
+				break loop
 			}
 		}
 	}
