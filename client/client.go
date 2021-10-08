@@ -87,7 +87,10 @@ func (c *client) accept(conn net.Conn) {
 		return
 	}
 
-	defer conn.Close()
+	defer func() {
+		conn.Close()
+		fmt.Println("conn close")
+	}()
 
 	var b [1024]byte
 	_, err := conn.Read(b[:])
@@ -181,8 +184,15 @@ func (c *client) readLoop() {
 			continue
 		}
 		if *debug {
-			fmt.Println("GetMSG: ", string(tml.ToBytes()))
+			//fmt.Println("GetMSG: ", string(tml.ToBytes()))
+			fmt.Println("GetMSG: ")
 		}
+
+		//if tml.Close {
+		//	fmt.Println("close", string(msg))
+		//	c.kvo.Unsubscribe(string(tml.Data))
+		//	continue
+		//}
 
 		go func() {
 			err := c.kvo.Publish(tml.ID, tml)
@@ -285,11 +295,13 @@ loop:
 	for {
 		select {
 		case r, ex := <-subscription.Channel:
-			if ex {
+			if !ex {
 				break loop
 			}
+
 			rx := r.(models.Tml)
 			if rx.Close {
+				subscription.Unsubscribe()
 				break loop
 			}
 

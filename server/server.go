@@ -91,7 +91,12 @@ func (p *PiledriverHandler) close(conn *websocket.Conn, id string) {
 		Close: true,
 	}
 
-	conn.WriteMessage(websocket.BinaryMessage, respTml.ToBytes())
+	err := conn.WriteMessage(websocket.BinaryMessage, respTml.ToBytes())
+	if err != nil {
+		if *debug {
+			log.Println(err)
+		}
+	}
 }
 
 func (p *PiledriverHandler) core(conn *websocket.Conn) {
