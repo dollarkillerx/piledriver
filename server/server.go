@@ -157,6 +157,9 @@ func (p *PiledriverHandler) core(conn *websocket.Conn) {
 				p.close(conn, tml.ID)
 				return
 			}
+
+			fmt.Println("addr: ", string(tml.Data))
+			fmt.Println("addr: ", addr.String())
 			dial.SetLinger(0)
 			p.clientMap[tml.ID] = dial
 

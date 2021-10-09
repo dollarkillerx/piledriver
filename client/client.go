@@ -123,11 +123,15 @@ func (c *client) accept(conn net.Conn) {
 	case 0x04: // ipv6
 		return
 	}
+	fmt.Println("host: ", host, " domain: ", domain)
 
 	isPac := usePac(host, *pac, domain)
 
 	port = strconv.Itoa(int(b[n-2])<<8 | int(b[n-1]))
 	addr := net.JoinHostPort(host, port)
+	fmt.Println(host)
+	fmt.Println(addr)
+	fmt.Println(domain)
 
 	if _, err := conn.Write([]byte{0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}); err != nil { //响应客户端连接成功
 		return
@@ -230,7 +234,7 @@ func (c *client) heartbeat() {
 
 	err := c.conn.WriteMessage(websocket.PingMessage, []byte(""))
 	if err == nil {
-		fmt.Println("PingMessage")
+		//fmt.Println("PingMessage")
 		return
 	}
 
@@ -302,8 +306,10 @@ loop:
 			rx := r.(models.Tml)
 			if rx.Close {
 				subscription.Unsubscribe()
+				fmt.Println("close: ", rx.ID)
 				break loop
 			}
+			fmt.Println(rx)
 
 			if _, err := client.Write(rx.Data); err != nil {
 				if *debug {
