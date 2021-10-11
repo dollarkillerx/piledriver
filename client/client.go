@@ -5,6 +5,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"github.com/dollarkillerx/easy_dns"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"io"
 	"log"
 	"net"
@@ -13,11 +16,6 @@ import (
 	"plumber/storage"
 	"plumber/utils"
 	"strconv"
-	"time"
-
-	"github.com/dollarkillerx/easy_dns"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 const pem = `
@@ -113,31 +111,25 @@ func (s *server) handleClientRequest(client net.Conn) {
 		//log.Println(err)
 		return
 	}
-	var pac bool
 	if b[0] == 0x05 { //只处理Socket5协议
 		//客户端回应：Socket服务端不需要验证方式
 		client.Write([]byte{0x05, 0x00})
 		n, err = client.Read(b[:])
+		var domain bool
+		// 解析目的地
 		var host, port string
 		switch b[3] {
-		case 0x01: //IP V4
+		case 0x01: // ip
 			host = net.IPv4(b[4], b[5], b[6], b[7]).String()
-			pac, err = s.isPac(host, "")
-			if err != nil {
-				//log.Println(err)
-				return
-			}
-		case 0x03: //域名
+		case 0x03: // domain
 			host = string(b[5 : n-2]) //b[4]表示域名的长度
-			pac, err = s.isPac("", host)
-			if err != nil {
-				//log.Println(err)
-				return
-			}
-		case 0x04: //IP V6
-			//host = net.IP{b[4], b[5], b[6], b[7], b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15], b[16], b[17], b[18], b[19]}.String()
+			domain = true
+		case 0x04: // ipv6
 			return
 		}
+
+		isPac := usePac(host, s.pac, domain, s.dns)
+
 		port = strconv.Itoa(int(b[n-2])<<8 | int(b[n-1]))
 
 		addr := net.JoinHostPort(host, port)
@@ -147,7 +139,7 @@ func (s *server) handleClientRequest(client net.Conn) {
 			return
 		}
 
-		if pac {
+		if isPac {
 			simple(client, addr)
 			return
 		}
@@ -204,81 +196,83 @@ func copy2(client io.Writer, server rpc.Plumber_PlumberClient) {
 	}
 }
 
-func (s *server) isPac(ip string, domain string) (bool, error) {
-	if s.pac {
-		if ip != "" {
-			search, err := utils.IP2.MemorySearch(ip)
+func usePac(host string, pac bool, website bool, dns string) bool {
+	if !pac {
+		return false
+	}
+
+	var ip string
+
+	rb, err := storage.Storage.Get(host)
+	if err != nil {
+		if website {
+			lookupIP, err := lockDns(host, dns)
 			if err != nil {
-				log.Println(err)
-				return false, err
+				// 如果不存在则查询内网DNS
+				lookupHost, err := net.LookupHost(host)
+				if err != nil {
+					log.Println(err)
+					return false
+				} else {
+					if len(lookupHost) > 0 {
+						ip = lookupHost[0]
+					} else {
+						return false
+					}
+				}
 			}
-			if search.Country == "中国" || search.Country == "0" {
-				return true, nil
-			}
-		}
-		if domain != "" {
-			//ipSimple, err := easy_dns.LookupIPSimple(domain, s.dns)
-			ipSimple, err := lookIP(domain, s.dns)
-			if err != nil {
-				return false, nil
-			}
-			if ipSimple == "" {
-				return false, nil
+			if len(lookupIP) > 0 {
+				ip = lookupIP[0]
+			} else if len(ip) == 0 {
+				return false
 			}
 
-			search, err := utils.IP2.MemorySearch(ipSimple)
-			if err != nil {
-				return false, err
-			}
-			if search.Country == "中国" || search.Country == "0" {
-				return true, nil
-			}
+			storage.Storage.Set(host, ip)
 		}
+	} else {
+		ip = rb.(string)
 	}
-	return false, nil
+
+	// TODO: 检测IP
+	search, err := utils.IP2.MemorySearch(ip)
+	if err != nil {
+		return false
+	}
+	if (search.Country == "中国" && search.Province != "台湾" && search.Province != "香港" && search.Province != " 澳门") || (search.Country == "0" && search.City == "内网IP") {
+		return true
+	}
+	return false
 }
 
-func lookIP(domain string, dns string) (string, error) {
-	var ip string
-	var ttl uint32
-	ipb, err := storage.Storage.Get(domain)
-	if err == nil {
-		return ipb.(string), nil
-	}
-
+func lockDns(domain string, dns string) ([]string, error) {
 	lookupIP, err := easy_dns.LookupIP(domain, dns)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
+
+	var result []string
 	for _, v := range lookupIP.Answers {
 		if v.Header.Type == easy_dns.TypeA {
-			ip = v.Body.GoString()
-			ttl = v.Header.TTL
-			storage.Storage.SetWithExpire(domain, ip, time.Second*time.Duration(ttl))
-			break
+			result = append(result, v.Body.GoString())
 		}
 	}
 
-	if ip == "" {
-		return "", fmt.Errorf("not fund")
-	}
-
-	return ip, nil
+	return result, nil
 }
 
 func simple(client net.Conn, addr string) {
 	addrs, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
+		log.Println(err)
 		return
 	}
 	server, err := net.DialTCP("tcp", nil, addrs)
 	if err != nil {
+		log.Println(err)
 		return
 	}
 
-	if err := server.SetLinger(0); err != nil {
-		return
-	}
+	server.SetLinger(0)
 
 	defer server.Close()
 	//进行转发
