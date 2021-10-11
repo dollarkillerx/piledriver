@@ -112,6 +112,7 @@ func (s *server) handleClientRequest(client net.Conn) {
 		//log.Println(err)
 		return
 	}
+
 	if b[0] == 0x05 { //只处理Socket5协议
 		//客户端回应：Socket服务端不需要验证方式
 		client.Write([]byte{0x05, 0x00})
@@ -201,7 +202,6 @@ func usePac(host string, pac bool, website bool, dns string) bool {
 	if !pac {
 		return false
 	}
-
 	var ip string
 
 	rb, err := storage.Storage.Get(host)
@@ -222,6 +222,7 @@ func usePac(host string, pac bool, website bool, dns string) bool {
 					}
 				}
 			}
+
 			if len(lookupIP) > 0 {
 				ip = lookupIP[0]
 			} else if len(ip) == 0 {
@@ -229,6 +230,8 @@ func usePac(host string, pac bool, website bool, dns string) bool {
 			}
 
 			storage.Storage.Set(host, ip)
+		} else {
+			ip = host
 		}
 	} else {
 		ip = rb.(string)
