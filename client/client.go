@@ -13,6 +13,7 @@ import (
 	"plumber/storage"
 	"plumber/utils"
 	"strconv"
+	"strings"
 
 	"github.com/dollarkillerx/easy_dns"
 	"google.golang.org/grpc"
@@ -149,14 +150,14 @@ func (s *server) handleClientRequest(client net.Conn) {
 		//进行转发
 		stream, err := s.client.Plumber(context.TODO())
 		if err != nil {
-			//log.Println(err)
+			log.Println(err)
 			return
 		}
 
 		if err := stream.Send(&rpc.PlumberRequest{
 			Addr: addr,
 		}); err != nil {
-			//log.Println(err)
+			log.Println(err)
 			return
 		}
 
@@ -198,7 +199,65 @@ func copy2(client io.Writer, server rpc.Plumber_PlumberClient) {
 	}
 }
 
+var pacListGW = []string{
+	"google.com",
+	"twitter.com",
+	"githubusercontent.com",
+	"github.com",
+	"youtube.com",
+	"facebook.com",
+	"duckduckgo.com",
+	"fbcdn.net",
+	"googlevideo.com",
+	"twimg.com",
+	"wikipedia.org",
+	"jsdelivr.net",
+	"jsdelivr.com",
+	"fastly.com",
+	"cloudflare.com",
+	"akamai.com",
+	"netlify.com",
+	"unpkg.com",
+	"googleapis.com",
+	"gstatic.com",
+	"v2ex.com",
+	"ggpht.com",
+	"google-analytics.com",
+}
+
+var pacListGN = []string{
+	"baidu.com",
+	"bdstatic.com",
+	"bilibili.com",
+	"bilivideo.com",
+	"qq.com",
+	"bootcdn.net",
+	"baidustatic.com",
+}
+
+func pacListPac(r string, pacList []string) bool {
+	for _, v := range pacList {
+		if strings.Contains(r, v) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func usePac(host string, pac bool, website bool, dns string) bool {
+	if website {
+		if pacListPac(host, pacListGW) {
+			return false
+		}
+
+		if pac {
+			if pacListPac(host, pacListGN) {
+				return true
+			}
+		}
+	}
+
 	if !pac {
 		return false
 	}
@@ -208,7 +267,7 @@ func usePac(host string, pac bool, website bool, dns string) bool {
 	if err != nil {
 		if website {
 			lookupIP, err := lockDns(host, dns)
-			if err != nil {
+			if err != nil || len(lookupIP) == 0 {
 				// 如果不存在则查询内网DNS
 				lookupHost, err := net.LookupHost(host)
 				if err != nil {
@@ -242,6 +301,7 @@ func usePac(host string, pac bool, website bool, dns string) bool {
 	if err != nil {
 		return false
 	}
+
 	if (search.Country == "中国" && search.Province != "台湾" && search.Province != "香港" && search.Province != " 澳门") || (search.Country == "0" && search.City == "内网IP") {
 		return true
 	}
