@@ -29,3 +29,4 @@ piledriver_server
 
 dns.cache
 dns.cache/*
+ip2region.db

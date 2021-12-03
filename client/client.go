@@ -11,9 +11,10 @@ import (
 	"net/url"
 	"plumber/utils"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/dgraph-io/badger/v2"
+	"github.com/bluele/gcache"
 	"github.com/dollarkillerx/easy_dns"
 	"github.com/gorilla/websocket"
 )
@@ -31,9 +32,6 @@ func main() {
 	flag.Parse()
 
 	//log.SetFlags(log.LstdFlags | log.Llongfile)
-
-	initStorage()
-
 	// Local
 	addr, err := net.ResolveTCPAddr("tcp", *localHost)
 	if err != nil {
@@ -187,14 +185,72 @@ func copy2(client io.Writer, conn *websocket.Conn) {
 	}
 }
 
+var pacListGW = []string{
+	"google.com",
+	"twitter.com",
+	"githubusercontent.com",
+	"github.com",
+	"youtube.com",
+	"facebook.com",
+	"duckduckgo.com",
+	"fbcdn.net",
+	"googlevideo.com",
+	"twimg.com",
+	"wikipedia.org",
+	"jsdelivr.net",
+	"jsdelivr.com",
+	"fastly.com",
+	"cloudflare.com",
+	"akamai.com",
+	"netlify.com",
+	"unpkg.com",
+	"googleapis.com",
+	"gstatic.com",
+	"v2ex.com",
+	"ggpht.com",
+	"google-analytics.com",
+}
+
+var pacListGN = []string{
+	"baidu.com",
+	"bdstatic.com",
+	"bilibili.com",
+	"bilivideo.com",
+	"qq.com",
+	"bootcdn.net",
+	"baidustatic.com",
+}
+
+func pacListPac(r string, pacList []string) bool {
+	for _, v := range pacList {
+		if strings.Contains(r, v) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func usePac(host string, pac bool, website bool) bool {
+	if website {
+		if pacListPac(host, pacListGW) {
+			return false
+		}
+
+		if pac {
+			if pacListPac(host, pacListGN) {
+				return true
+			}
+		}
+	}
+
 	if !pac {
 		return false
 	}
 
 	var ip string
 
-	rb, err := Storage.Get([]byte(host))
+	rb, err := Storage.Get(host)
 	if err != nil {
 		if website {
 			lookupIP, err := lockDns(host, *pacDns)
@@ -218,10 +274,10 @@ func usePac(host string, pac bool, website bool) bool {
 				return false
 			}
 
-			Storage.Set([]byte(host), []byte(ip), 4*time.Hour)
+			Storage.SetWithExpire(host, ip, 4*time.Hour)
 		}
 	} else {
-		ip = string(rb)
+		ip = rb.(string)
 	}
 
 	// TODO: 检测IP
@@ -235,48 +291,13 @@ func usePac(host string, pac bool, website bool) bool {
 	return false
 }
 
-type storage struct {
-	db *badger.DB
-}
+var Storage gcache.Cache
 
-var Storage *storage
-
-func initStorage() {
-	open, err := badger.Open(badger.DefaultOptions("./dns.cache"))
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	Storage = &storage{db: open}
-}
-
-func (l *storage) Set(key, val []byte, tll time.Duration) error {
-	return l.db.Update(func(txn *badger.Txn) error {
-		entry := badger.NewEntry(key, val)
-		if tll != 0 {
-			entry = entry.WithTTL(tll)
-		}
-		return txn.SetEntry(entry)
-	})
-}
-
-func (l *storage) Get(key []byte) (value []byte, err error) {
-	err = l.db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get(key)
-		if err != nil {
-			return err
-		}
-
-		return item.Value(func(val []byte) error {
-			value = val
-			return nil
-		})
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return value, nil
+func init() {
+	gc := gcache.New(20).
+		LRU().
+		Build()
+	Storage = gc
 }
 
 func lockDns(domain string, dns string) ([]string, error) {
